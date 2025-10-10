@@ -1,4 +1,4 @@
-enum HierarchyLevel {
+enum ListLevel {
   company,
   branch,
   warehouse,
@@ -6,53 +6,53 @@ enum HierarchyLevel {
 
   String get displayName {
     switch (this) {
-      case HierarchyLevel.company:
+      case ListLevel.company:
         return 'Company';
-      case HierarchyLevel.branch:
+      case ListLevel.branch:
         return 'Branch';
-      case HierarchyLevel.warehouse:
+      case ListLevel.warehouse:
         return 'Warehouse';
-      case HierarchyLevel.product:
+      case ListLevel.product:
         return 'Product';
     }
   }
 
-  HierarchyLevel? get nextLevel {
+  ListLevel? get nextLevel {
     switch (this) {
-      case HierarchyLevel.company:
-        return HierarchyLevel.branch;
-      case HierarchyLevel.branch:
-        return HierarchyLevel.warehouse;
-      case HierarchyLevel.warehouse:
-        return HierarchyLevel.product;
-      case HierarchyLevel.product:
+      case ListLevel.company:
+        return ListLevel.branch;
+      case ListLevel.branch:
+        return ListLevel.warehouse;
+      case ListLevel.warehouse:
+        return ListLevel.product;
+      case ListLevel.product:
         return null;
     }
   }
 
   String get icon {
     switch (this) {
-      case HierarchyLevel.company:
+      case ListLevel.company:
         return '🏢';
-      case HierarchyLevel.branch:
+      case ListLevel.branch:
         return '🏪';
-      case HierarchyLevel.warehouse:
+      case ListLevel.warehouse:
         return '📦';
-      case HierarchyLevel.product:
+      case ListLevel.product:
         return '📱';
     }
   }
 }
 
-class HierarchyItem {
+class ListItem {
   final String id;
   final String name;
   final String code;
   final String description;
-  final HierarchyLevel level;
+  final ListLevel level;
   final String? parentId;
 
-  HierarchyItem({
+  ListItem({
     required this.id,
     required this.name,
     required this.code,
@@ -63,13 +63,13 @@ class HierarchyItem {
 
   String get displayName => '$name ($code)';
 
-  factory HierarchyItem.fromJson(Map<String, dynamic> json) {
-    return HierarchyItem(
+  factory ListItem.fromJson(Map<String, dynamic> json) {
+    return ListItem(
       id: json['id'],
       name: json['name'],
       code: json['code'],
       description: json['description'],
-      level: HierarchyLevel.values.firstWhere(
+      level: ListLevel.values.firstWhere(
         (e) => e.name == json['level'],
       ),
       parentId: json['parentId'],

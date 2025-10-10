@@ -2,22 +2,25 @@ import 'package:get/get.dart';
 import '../pages/login_page.dart';
 import '../pages/register_page.dart';
 import '../pages/home_page.dart';
-import '../pages/hierarchy_page.dart';
+import '../pages/list_page.dart';
+import '../pages/product_detail_page.dart';
 import '../bindings/auth_binding.dart';
-import '../bindings/hierarchy_binding.dart';
+import '../bindings/list_binding.dart';
 
 abstract class Routes {
   static const LOGIN = _Paths.LOGIN;
   static const REGISTER = _Paths.REGISTER;
   static const HOME = _Paths.HOME;
-  static const HIERARCHY = _Paths.HIERARCHY;
+  static const LIST = _Paths.LIST;
+  static const PRODUCT_DETAIL = _Paths.PRODUCT_DETAIL;
 }
 
 abstract class _Paths {
   static const LOGIN = '/login';
   static const REGISTER = '/register';
   static const HOME = '/home';
-  static const HIERARCHY = '/hierarchy';
+  static const LIST = '/list';
+  static const PRODUCT_DETAIL = '/product-detail';
 }
 
 class AppPages {
@@ -40,9 +43,13 @@ class AppPages {
       binding: AuthBinding(),
     ),
     GetPage(
-      name: _Paths.HIERARCHY,
-      page: () => const HierarchyPage(),
-      binding: HierarchyBinding(),
+      name: _Paths.LIST,
+      page: () => const ListPage(),
+      binding: ListBinding(),
+    ),
+    GetPage(
+      name: _Paths.PRODUCT_DETAIL,
+      page: () => const ProductDetailPage(),
     ),
   ];
 }
