@@ -1,6 +1,3 @@
-// Professional skeleton loading widgets with enhanced shimmer effects
-// Updated with modern design patterns and improved visual appeal
-
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -8,7 +5,6 @@ class SkeletonLoader {
   static const Color _baseColor = Color(0xFFF1F5F9);
   static const Color _highlightColor = Color(0xFFFFFFFF);
 
-  // Enhanced skeleton for top parent card (selected company/branch/warehouse)
   static Widget cardSkeleton() {
     return Container(
       width: double.infinity,

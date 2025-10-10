@@ -1,6 +1,3 @@
-// Type-safe navigation arguments helper for ListPage
-// Ensures proper data passing between hierarchy navigation levels
-
 import 'list_item.dart';
 
 class ListArguments {

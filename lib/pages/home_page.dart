@@ -4,307 +4,264 @@ import '../controllers/auth_controller.dart';
 import '../models/list_item.dart';
 import '../models/list_arguments.dart';
 import '../routes/app_pages.dart';
+import '../core/theme/app_theme.dart';
 
-class HomePage extends StatelessWidget {
-  HomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final AuthController authController = Get.find<AuthController>();
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   final List<Map<String, dynamic>> menuItems = [
     {
-      'name': 'Company',
+      'name': 'Companies',
       'level': 'company',
-      'icon': '🏢',
-      'color': const Color(0xFF1E40AF),
+      'icon': Icons.business_outlined,
+      'count': '12',
+      'color': AppTheme.primary,
     },
     {
-      'name': 'Branch',
+      'name': 'Branches',
       'level': 'branch',
-      'icon': '🏪',
-      'color': const Color(0xFF059669),
+      'icon': Icons.store_outlined,
+      'count': '48',
+      'color': AppTheme.success,
     },
     {
-      'name': 'Warehouse',
+      'name': 'Warehouses',
       'level': 'warehouse',
-      'icon': '📦',
-      'color': const Color(0xFFDC2626),
+      'icon': Icons.warehouse_outlined,
+      'count': '156',
+      'color': AppTheme.warning,
     },
     {
-      'name': 'Product',
+      'name': 'Products',
       'level': 'product',
-      'icon': '📱',
-      'color': const Color(0xFF7C3AED),
+      'icon': Icons.inventory_2_outlined,
+      'count': '2.3K',
+      'color': Color(0xFF8B5CF6),
     },
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: AppAnimations.medium,
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: AppAnimations.slow,
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: AppAnimations.easeOut),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: AppAnimations.easeOut),
+    );
+
+    // Start animations
+    _fadeController.forward();
+    _slideController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9), Color(0xFFE2E8F0)],
-          ),
-        ),
-        child: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              // Custom App Bar
-              SliverAppBar(
-                expandedHeight: 120,
-                floating: false,
-                pinned: true,
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: const Text(
-                    'AMAZESYS',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E40AF),
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  centerTitle: true,
-                  background: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
-                      ),
-                    ),
-                  ),
-                ),
-                actions: [
-                  Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      onPressed: () => _showLogoutDialog(context),
-                      icon: const Icon(
-                        Icons.logout_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              // Content
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Welcome Section
-                      _buildWelcomeSection(),
-
-                      const SizedBox(height: 32),
-
-                      // Quick Stats Row
-                      _buildQuickStats(),
-
-                      const SizedBox(height: 32),
-
-                      // Section Title
-                      const Text(
-                        'Business Modules',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Text(
-                        'Select a module to manage your business operations',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Menu Grid
-                      _buildMenuGrid(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+      backgroundColor: AppTheme.surfaceVariant,
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildAppBar(),
+                _buildQuickStats(),
+                _buildModulesSection(),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildWelcomeSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1E40AF).withOpacity(0.3),
-            spreadRadius: 0,
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.waving_hand,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Welcome back!',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Obx(
-                      () => Text(
-                        authController.currentUser?.name ?? 'User',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white.withOpacity(0.9),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
+  Widget _buildAppBar() {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.email_outlined,
-                  color: Colors.white.withOpacity(0.8),
-                  size: 16,
+                Text(
+                  'AMAZESYS',
+                  style: AppTypography.h3.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Obx(
-                    () => Text(
-                      authController.currentUser?.email ?? '',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Management',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppTheme.neutral500,
+                  ),
+                ),
+              ],
+            ),
+            _buildProfileButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.card,
+        border: Border.all(color: AppTheme.border, width: 1),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: () => _showProfileMenu(context),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppTheme.primarySurface,
+                  child: Text(
+                    (authController.currentUser?.name ?? 'U')
+                        .substring(0, 1)
+                        .toUpperCase(),
+                    style: AppTypography.labelMedium.copyWith(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildQuickStats() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildStatCard('4', 'Modules', Icons.dashboard_outlined),
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.xl,
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard('100+', 'Items', Icons.inventory_outlined),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                'Active',
+                '24/7',
+                Icons.schedule_outlined,
+                AppTheme.success,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _buildStatCard(
+                'Modules',
+                '4',
+                Icons.dashboard_outlined,
+                AppTheme.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _buildStatCard(
+                'Items',
+                '2.5K+',
+                Icons.inventory_outlined,
+                AppTheme.warning,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _buildStatCard('24/7', 'Access', Icons.access_time_outlined),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildStatCard(String value, String label, IconData icon) {
+  Widget _buildStatCard(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.card,
+        border: Border.all(color: AppTheme.border, width: 1),
       ),
       child: Column(
         children: [
-          Icon(icon, color: const Color(0xFF1E40AF), size: 24),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+            style: AppTypography.h4.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppTheme.neutral900,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
+            style: AppTypography.bodySmall.copyWith(
+              color: AppTheme.neutral500,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -313,105 +270,173 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.9,
+  Widget _buildModulesSection() {
+    return SliverToBoxAdapter(
+      child: Container(
+        margin: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Business Modules',
+                      style: AppTypography.h2.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'Access your business operations',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppTheme.neutral500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculate optimal card dimensions based on screen width
+                const double minCardWidth = 160.0;
+                const double maxCardWidth = 200.0;
+                final double availableWidth = constraints.maxWidth;
+                final int crossAxisCount = (availableWidth / minCardWidth)
+                    .floor()
+                    .clamp(2, 3);
+                final double cardWidth =
+                    (availableWidth - (AppSpacing.md * (crossAxisCount - 1))) /
+                    crossAxisCount;
+                final double cardHeight =
+                    cardWidth * 1.2; // Better aspect ratio for content
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: AppSpacing.md,
+                    mainAxisSpacing: AppSpacing.md,
+                    childAspectRatio: cardWidth / cardHeight,
+                  ),
+                  itemCount: menuItems.length,
+                  itemBuilder: (context, index) {
+                    return _buildModuleCard(menuItems[index], index);
+                  },
+                );
+              },
+            ),
+          ],
+        ),
       ),
-      itemCount: menuItems.length,
-      itemBuilder: (context, index) {
-        final item = menuItems[index];
-        return _buildMenuCard(item, index);
-      },
     );
   }
 
-  Widget _buildMenuCard(Map<String, dynamic> item, int index) {
+  Widget _buildModuleCard(Map<String, dynamic> item, int index) {
     return TweenAnimationBuilder(
-      duration: Duration(milliseconds: 600 + (index * 100)),
+      duration: Duration(milliseconds: 400 + (index * 100)),
       tween: Tween<double>(begin: 0.0, end: 1.0),
       builder: (context, double value, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - value) * 50),
+        return Transform.scale(
+          scale: 0.8 + (0.2 * value),
           child: Opacity(
             opacity: value,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: (item['color'] as Color).withOpacity(0.1),
-                    spreadRadius: 0,
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(AppRadius.xxl),
+                boxShadow: AppShadows.card,
+                border: Border.all(color: AppTheme.border, width: 1),
               ),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    final level = ListLevel.values.firstWhere(
-                      (e) => e.name == item['level'],
-                    );
-                    final args = ListArguments(level: level);
-                    Get.toNamed(Routes.LIST, arguments: args.toMap());
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
+                  borderRadius: BorderRadius.circular(AppRadius.xxl),
+                  onTap: () => _handleModuleTap(item),
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Icon with colored background
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: (item['color'] as Color).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Center(
-                            child: Text(
-                              item['icon'],
-                              style: const TextStyle(fontSize: 28),
+                        // Header with icon and count
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Icon container - flexible size
+                            Flexible(
+                              flex: 1,
+                              child: Container(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                decoration: BoxDecoration(
+                                  color: (item['color'] as Color).withOpacity(
+                                    0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.lg,
+                                  ),
+                                ),
+                                child: Icon(
+                                  item['icon'] as IconData,
+                                  color: item['color'] as Color,
+                                  size: 24,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: AppSpacing.sm),
+                            // Count badge - constrained
+                            Container(
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                maxWidth: 60,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm,
+                                vertical: AppSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceContainer,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.full,
+                                ),
+                                border: Border.all(
+                                  color: AppTheme.borderLight,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                item['count'],
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppTheme.neutral600,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
                         ),
 
-                        const SizedBox(height: 12),
+                        // Spacing
+                        const SizedBox(height: AppSpacing.lg),
 
-                        // Title
-                        Text(
-                          item['name'],
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E293B),
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        // Arrow indicator
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: (item['color'] as Color).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Icon(
-                            Icons.arrow_forward_ios,
-                            size: 12,
-                            color: item['color'] as Color,
+                        // Title - constrained height
+                        Flexible(
+                          child: Text(
+                            item['name'],
+                            style: AppTypography.h4.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -426,57 +451,152 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  void _handleModuleTap(Map<String, dynamic> item) {
+    final level = ListLevel.values.firstWhere((e) => e.name == item['level']);
+    final args = ListArguments(level: level);
+    Get.toNamed(Routes.LIST, arguments: args.toMap());
+  }
+
+  void _showProfileMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppRadius.xxl),
+                topRight: Radius.circular(AppRadius.xxl),
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppTheme.neutral300,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: AppSpacing.md),
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: AppTheme.primarySurface,
+                          child: Text(
+                            (authController.currentUser?.name ?? 'U')
+                                .substring(0, 1)
+                                .toUpperCase(),
+                            style: AppTypography.h3.copyWith(
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Obx(
+                          () => Text(
+                            authController.currentUser?.name ?? 'User',
+                            style: AppTypography.h4.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Obx(
+                          () => Text(
+                            authController.currentUser?.email ?? '',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppTheme.neutral500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _showLogoutDialog(context);
+                            },
+                            icon: const Icon(Icons.logout_outlined),
+                            label: const Text('Sign Out'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.error,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.lg,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: AppTheme.surface,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.xxl),
           ),
-          title: const Text(
+          title: Text(
             'Sign Out',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
-            ),
+            style: AppTypography.h3.copyWith(fontWeight: FontWeight.w600),
           ),
-          content: const Text(
+          content: Text(
             'Are you sure you want to sign out of your account?',
-            style: TextStyle(fontSize: 16, color: Color(0xFF64748B)),
+            style: AppTypography.bodyLarge.copyWith(color: AppTheme.neutral600),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w600,
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.neutral500,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
                 ),
               ),
+              child: Text('Cancel', style: AppTypography.buttonMedium),
             ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                authController.logout();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.error,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
                 ),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  authController.logout();
-                },
-                child: const Text(
-                  'Sign Out',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
               ),
+              child: Text('Sign Out', style: AppTypography.buttonMedium),
             ),
           ],
         );

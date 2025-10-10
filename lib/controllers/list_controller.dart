@@ -6,8 +6,8 @@ import '../services/list_service.dart';
 class ListController extends GetxController {
   final ListService _listService = ListService();
   
-  final RxList<ListItem> _currentItems = <HierarchyItem>[].obs;
-  final RxList<ListItem> _childItems = <HierarchyItem>[].obs;
+  final RxList<ListItem> _currentItems = <ListItem>[].obs;
+  final RxList<ListItem> _childItems = <ListItem>[].obs;
   final Rxn<ListItem> _selectedItem = Rxn<ListItem>();
   final RxBool _isLoading = false.obs;
   final RxString _searchQuery = ''.obs;
