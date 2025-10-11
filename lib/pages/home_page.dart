@@ -6,6 +6,7 @@ import '../models/list_item.dart';
 import '../models/list_arguments.dart';
 import '../routes/app_pages.dart';
 import '../core/theme/app_theme.dart';
+import '../services/list_service.dart';
 import '../widgets/bottom_navbar.dart';
 import 'table_page.dart';
 import 'profile_page.dart';
@@ -19,42 +20,43 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final AuthController authController = Get.find<AuthController>();
+  final ListService _listService = ListService();
   late final NavbarController navbarController;
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final List<Map<String, dynamic>> menuItems = [
+  final RxList<Map<String, dynamic>> menuItems = <Map<String, dynamic>>[
     {
       'name': 'Companies',
       'level': 'company',
       'icon': Icons.business_outlined,
-      'count': '12',
+      'count': '...',
       'color': AppTheme.primary,
     },
     {
       'name': 'Branches',
       'level': 'branch',
       'icon': Icons.store_outlined,
-      'count': '48',
+      'count': '...',
       'color': AppTheme.success,
     },
     {
       'name': 'Warehouses',
       'level': 'warehouse',
       'icon': Icons.warehouse_outlined,
-      'count': '156',
+      'count': '...',
       'color': AppTheme.warning,
     },
     {
       'name': 'Products',
       'level': 'product',
       'icon': Icons.inventory_2_outlined,
-      'count': '2.3K',
+      'count': '...',
       'color': Color(0xFF8B5CF6),
     },
-  ];
+  ].obs;
 
   @override
   void initState() {
@@ -86,9 +88,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _slideController, curve: AppAnimations.easeOut),
     );
 
-    // Start animations
+    // Start animations and load data
     _fadeController.forward();
     _slideController.forward();
+    _loadCounts();
   }
 
   @override
@@ -96,6 +99,38 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
+  }
+
+  /// Load real counts from API
+  Future<void> _loadCounts() async {
+    try {
+      // Load counts for each level
+      for (int i = 0; i < menuItems.length; i++) {
+        final item = menuItems[i];
+        final levelString = item['level'] as String;
+        final level = ListLevel.values.firstWhere((e) => e.name == levelString);
+        
+        final items = await _listService.getItemsByLevel(level);
+        final count = items.length;
+        
+        // Update count with proper formatting
+        String formattedCount;
+        if (count >= 1000) {
+          formattedCount = '${(count / 1000).toStringAsFixed(1)}K';
+        } else {
+          formattedCount = count.toString();
+        }
+        
+        // Update the menu item
+        menuItems[i] = {
+          ...item,
+          'count': formattedCount,
+        };
+      }
+    } catch (e) {
+      print('Error loading counts: $e');
+      // Keep default counts on error
+    }
   }
 
   @override
@@ -345,7 +380,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 final double cardHeight =
                     cardWidth * 1.2; // Better aspect ratio for content
 
-                return GridView.builder(
+                return Obx(() => GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -358,7 +393,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   itemBuilder: (context, index) {
                     return _buildModuleCard(menuItems[index], index);
                   },
-                );
+                ));
               },
             ),
           ],

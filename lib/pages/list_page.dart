@@ -5,6 +5,7 @@ import '../models/list_item.dart';
 import '../models/list_arguments.dart';
 import '../widgets/skeleton_loader.dart';
 import '../core/theme/app_theme.dart';
+import '../widgets/detail_widgets/company_detail_widget.dart';
 import 'product_detail_page.dart';
 
 class ListPage extends StatefulWidget {
@@ -799,19 +800,73 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
         );
       }
 
-      return SingleChildScrollView(
-        key: const ValueKey('detail'),
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildInfoSection(),
-            const SizedBox(height: AppSpacing.xl),
-            _buildAdditionalInfoSection(),
-          ],
-        ),
-      );
+      // Use appropriate detail widget based on item level
+      return _buildDetailWidgetForLevel(controller.selectedItem!);
     });
+  }
+
+  Widget _buildDetailWidgetForLevel(ListItem item) {
+    switch (item.level) {
+      case ListLevel.company:
+        return CompanyDetailWidget(item: item);
+        
+      case ListLevel.branch:
+        // TODO: Implement BranchDetailWidget
+        return _buildPlaceholderDetailWidget('Branch', item);
+        
+      case ListLevel.warehouse:
+        // TODO: Implement WarehouseDetailWidget
+        return _buildPlaceholderDetailWidget('Warehouse', item);
+        
+      case ListLevel.product:
+        // TODO: Implement ProductDetailWidget  
+        return _buildPlaceholderDetailWidget('Product', item);
+        
+      default:
+        return _buildPlaceholderDetailWidget('Item', item);
+    }
+  }
+
+  Widget _buildPlaceholderDetailWidget(String type, ListItem item) {
+    return SingleChildScrollView(
+      key: ValueKey('${type.toLowerCase()}-detail'),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoSection(),
+          const SizedBox(height: AppSpacing.xl),
+          _buildAdditionalInfoSection(),
+          const SizedBox(height: AppSpacing.lg),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppTheme.infoLight,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppTheme.info.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outlined,
+                  color: AppTheme.info,
+                  size: 20,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    '$type detail widget will be implemented with specific data fields',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppTheme.info,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildInfoSection() {

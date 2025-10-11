@@ -328,4 +328,64 @@ class SkeletonLoader {
       ),
     );
   }
+
+  // New: Skeleton for detail card sections
+  static Widget detailCardSkeleton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!, width: 1),
+      ),
+      child: Shimmer.fromColors(
+        baseColor: _baseColor,
+        highlightColor: _highlightColor,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section title placeholder
+            Container(
+              height: 14,
+              width: 120,
+              decoration: BoxDecoration(
+                color: _baseColor,
+                borderRadius: BorderRadius.circular(7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Info rows placeholders
+            ...List.generate(4, (index) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Label placeholder
+                  Container(
+                    height: 12,
+                    width: 80 + (index * 20).toDouble(),
+                    decoration: BoxDecoration(
+                      color: _baseColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Value placeholder
+                  Container(
+                    height: 14,
+                    width: 150 + (index * 30).toDouble(),
+                    decoration: BoxDecoration(
+                      color: _baseColor,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
 }
