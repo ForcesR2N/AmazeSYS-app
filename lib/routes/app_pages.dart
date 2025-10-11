@@ -4,8 +4,11 @@ import '../pages/register_page.dart';
 import '../pages/home_page.dart';
 import '../pages/list_page.dart';
 import '../pages/product_detail_page.dart';
+import '../pages/table_page.dart';
+import '../pages/profile_page.dart';
 import '../bindings/auth_binding.dart';
 import '../bindings/list_binding.dart';
+import '../bindings/navbar_binding.dart';
 
 abstract class Routes {
   static const LOGIN = _Paths.LOGIN;
@@ -24,7 +27,7 @@ abstract class _Paths {
 }
 
 class AppPages {
-  static const INITIAL = Routes.LOGIN;
+  static const INITIAL = Routes.HOME;
 
   static final routes = [
     GetPage(
@@ -39,17 +42,14 @@ class AppPages {
     ),
     GetPage(
       name: _Paths.HOME,
-      page: () => HomePage(),
-      binding: AuthBinding(),
+      page: () => const HomePage(),
+      binding: NavbarBinding(),
     ),
     GetPage(
       name: _Paths.LIST,
       page: () => const ListPage(),
       binding: ListBinding(),
     ),
-    GetPage(
-      name: _Paths.PRODUCT_DETAIL,
-      page: () => const ProductDetailPage(),
-    ),
+    GetPage(name: _Paths.PRODUCT_DETAIL, page: () => const ProductDetailPage()),
   ];
 }

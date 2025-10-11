@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/navbar_controller.dart';
 import '../models/list_item.dart';
 import '../models/list_arguments.dart';
 import '../routes/app_pages.dart';
 import '../core/theme/app_theme.dart';
+import '../widgets/bottom_navbar.dart';
+import 'table_page.dart';
+import 'profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +19,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final AuthController authController = Get.find<AuthController>();
+  late final NavbarController navbarController;
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -54,6 +59,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Initialize navbar controller if not already done
+    if (!Get.isRegistered<NavbarController>()) {
+      Get.put(NavbarController());
+    }
+    navbarController = Get.find<NavbarController>();
+
     _fadeController = AnimationController(
       duration: AppAnimations.medium,
       vsync: this,
@@ -88,21 +100,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      _buildHomePage(),
+      const TablePage(),
+      const ProfilePage(),
+    ];
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceVariant,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _buildAppBar(),
-                _buildQuickStats(),
-                _buildModulesSection(),
-              ],
-            ),
+      body: PageView(
+        controller: navbarController.pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: pages,
+      ),
+      extendBody: true,
+      bottomNavigationBar: const BottomNavbar(),
+    );
+  }
+
+  Widget _buildHomePage() {
+    return SafeArea(
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildAppBar(),
+              _buildQuickStats(),
+              _buildModulesSection(),
+            ],
           ),
         ),
       ),
