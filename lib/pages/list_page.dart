@@ -23,6 +23,9 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
+  // Toggle view state: true = detail view, false = list view
+  bool _showDetailView = true;
+
   @override
   void initState() {
     super.initState();
@@ -168,6 +171,8 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
                   _buildSelectedItemCard(),
                   const SizedBox(height: AppSpacing.lg),
                   _buildSearchBar(),
+                  const SizedBox(height: AppSpacing.md),
+                  _buildToggleTabs(),
                 ],
               ),
             ),
@@ -362,10 +367,40 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
   }
 
   Widget _buildContentSection() {
-    return SliverPadding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      sliver: Obx(() => _buildContent()),
+    return SliverToBoxAdapter(
+      child: AnimatedSwitcher(
+        duration: AppAnimations.medium,
+        switchInCurve: AppAnimations.easeOut,
+        switchOutCurve: AppAnimations.easeOut,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.0, 0.1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: _showDetailView ? _buildDetailView() : _buildListView(),
+      ),
     );
+  }
+
+  Widget _buildListView() {
+    return Obx(() {
+      return Container(
+        key: const ValueKey('list'),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: CustomScrollView(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          slivers: [_buildContent()],
+        ),
+      );
+    });
   }
 
   Widget _buildContent() {
@@ -646,6 +681,251 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
               ),
             ),
           ),
+    );
+  }
+
+  Widget _buildDetailView() {
+    return Obx(() {
+      if (controller.selectedItem == null) {
+        return Container(
+          key: const ValueKey('detail'),
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppTheme.neutral100,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 40,
+                    color: AppTheme.neutral400,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'No Item Selected',
+                  style: AppTypography.h3.copyWith(
+                    color: AppTheme.neutral700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Select an item to view its details',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppTheme.neutral500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return SingleChildScrollView(
+        key: const ValueKey('detail'),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoSection(),
+            const SizedBox(height: AppSpacing.xl),
+            _buildAdditionalInfoSection(),
+          ],
+        ),
+      );
+    });
+  }
+
+  Widget _buildInfoSection() {
+    final item = controller.selectedItem!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'INFORMATION',
+          style: AppTypography.labelSmall.copyWith(
+            color: AppTheme.neutral600,
+            fontSize: 12,
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppTheme.border, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow('Name', item.name),
+              const SizedBox(height: AppSpacing.md),
+              _buildInfoRow('Code', item.code),
+              const SizedBox(height: AppSpacing.md),
+              _buildInfoRow('Level', item.level.displayName),
+              const SizedBox(height: AppSpacing.md),
+              _buildInfoRow('Description', item.description),
+              if (item.parentId != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                _buildInfoRow('Parent ID', item.parentId!),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: AppTheme.neutral500,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          value,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppTheme.neutral900,
+            height: 1.6,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAdditionalInfoSection() {
+    final item = controller.selectedItem!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ADDITIONAL INFORMATION',
+          style: AppTypography.labelSmall.copyWith(
+            color: AppTheme.neutral600,
+            fontSize: 12,
+            letterSpacing: 0.5,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppTheme.border, width: 1),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow('ID', item.id),
+              const SizedBox(height: AppSpacing.md),
+              _buildInfoRow('Display Name', item.displayName),
+              const SizedBox(height: AppSpacing.md),
+              _buildInfoRow('Category', '${item.level.displayName} Management'),
+              const SizedBox(height: AppSpacing.md),
+              _buildInfoRow('Created', 'System Generated'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToggleTabs() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppTheme.border),
+        boxShadow: AppShadows.card,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTabButton(
+              label: 'Details',
+              isActive: _showDetailView,
+              onTap: () => setState(() => _showDetailView = true),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildTabButton(
+              label: 'Navigate',
+              isActive: !_showDetailView,
+              onTap: () => setState(() => _showDetailView = false),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return AnimatedContainer(
+      duration: AppAnimations.medium,
+      curve: AppAnimations.easeInOut,
+      decoration: BoxDecoration(
+        gradient:
+            isActive
+                ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
+                )
+                : null,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: isActive ? AppShadows.card : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                color: isActive ? Colors.white : AppTheme.neutral500,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
