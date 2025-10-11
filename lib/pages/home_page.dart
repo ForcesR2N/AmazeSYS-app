@@ -193,8 +193,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   radius: 16,
                   backgroundColor: AppTheme.primarySurface,
                   child: Text(
-                    (authController.currentUser?.name ?? 'U')
-                        .substring(0, 1)
+                    (authController.currentUser?.name?.isNotEmpty == true
+                        ? authController.currentUser!.name!.substring(0, 1)
+                        : 'U')
                         .toUpperCase(),
                     style: AppTypography.labelMedium.copyWith(
                       color: AppTheme.primary,
@@ -520,8 +521,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           radius: 32,
                           backgroundColor: AppTheme.primarySurface,
                           child: Text(
-                            (authController.currentUser?.name ?? 'U')
-                                .substring(0, 1)
+                            (authController.currentUser?.name?.isNotEmpty == true
+                                ? authController.currentUser!.name!.substring(0, 1)
+                                : 'U')
                                 .toUpperCase(),
                             style: AppTypography.h3.copyWith(
                               color: AppTheme.primary,

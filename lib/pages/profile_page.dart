@@ -93,8 +93,9 @@ class ProfilePage extends StatelessWidget {
               radius: 40,
               backgroundColor: AppTheme.primarySurface,
               child: Obx(() => Text(
-                (authController.currentUser?.name ?? 'U')
-                    .substring(0, 1)
+                (authController.currentUser?.name?.isNotEmpty == true
+                    ? authController.currentUser!.name!.substring(0, 1)
+                    : 'U')
                     .toUpperCase(),
                 style: AppTypography.h2.copyWith(
                   color: AppTheme.primary,

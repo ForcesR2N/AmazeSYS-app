@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../models/user_model.dart';
 import '../core/api/api_client.dart';
 import '../core/api/api_constants.dart';
@@ -10,12 +11,17 @@ class AuthService {
   // Login with real API call
   Future<User?> login(String username, String password) async {
     try {
+      final requestData = {
+        'username': username,
+        'password': password,
+      };
+
       final response = await _apiClient.post(
         ApiConstants.authLogin,
-        data: {
-          'username': username,
-          'password': password,
-        },
+        data: requestData,
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+        ),
       );
 
       if (response.statusCode == ApiConstants.statusOk && response.data != null) {
@@ -57,6 +63,9 @@ class AuthService {
           'username': username,
           'password': password,
         },
+        options: Options(
+          contentType: 'application/x-www-form-urlencoded',
+        ),
       );
 
       if (response.statusCode == ApiConstants.statusOk && response.data != null) {
@@ -125,7 +134,8 @@ class AuthService {
       if (response.statusCode == ApiConstants.statusOk && response.data != null) {
         // Assuming the API returns user data directly
         // Adjust this based on actual API response structure
-        return User.fromJson(response.data as Map<String, dynamic>);
+        final user = User.fromJson(response.data as Map<String, dynamic>);
+        return user;
       } else {
         return null;
       }
