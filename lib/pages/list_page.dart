@@ -25,6 +25,9 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
 
   // Toggle view state: true = detail view, false = list view
   bool _showDetailView = true;
+  
+  // Track if we should auto-switch due to empty details
+  bool _hasValidDetails = false;
 
   @override
   void initState() {
@@ -46,12 +49,14 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
     level = args.level;
     parentItem = args.parentItem;
 
+    // Listen to controller changes and validate details
+    ever(Rx(() => controller.selectedItem), (selectedItem) {
+      _checkDetailsValidityAndSetView();
+      if (mounted) setState(() {});
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (parentItem != null) {
-        controller.loadItemWithChildren(parentItem!);
-      } else {
-        controller.loadRootItems(level);
-      }
+      _initializePageData();
       _animationController.forward();
     });
   }
@@ -61,6 +66,65 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
     searchController.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  // Initialize page data and determine initial view
+  Future<void> _initializePageData() async {
+    try {
+      if (parentItem != null) {
+        // Load data for selected item and its children
+        await controller.loadItemWithChildren(parentItem!);
+        _checkDetailsValidityAndSetView();
+      } else {
+        // Load root items - no selected item, so show navigate view
+        await controller.loadRootItems(level);
+        _hasValidDetails = false;
+        _showDetailView = false; // No parent item, show navigate first
+      }
+    } catch (e) {
+      // On error, default to navigate view
+      _hasValidDetails = false;
+      _showDetailView = false;
+    }
+    
+    if (mounted) setState(() {});
+  }
+
+  // Check if details are valid and set appropriate view
+  void _checkDetailsValidityAndSetView() {
+    final selectedItem = controller.selectedItem;
+    
+    // Check if details are valid
+    _hasValidDetails = selectedItem != null && 
+                     selectedItem.name.isNotEmpty && 
+                     selectedItem.description.isNotEmpty;
+    
+    // Set initial view based on details validity
+    if (_hasValidDetails) {
+      _showDetailView = true; // Show details first if valid
+    } else {
+      _showDetailView = false; // Auto-switch to navigate if empty
+    }
+  }
+
+  // Safe toggle with validation
+  void _toggleView(bool showDetails) {
+    if (showDetails && !_hasValidDetails) {
+      // Don't switch to details if data is invalid
+      Get.snackbar(
+        'No Details Available',
+        'Unable to load item details. Showing navigation instead.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.warningLight,
+        colorText: AppTheme.warning,
+        duration: const Duration(seconds: 2),
+      );
+      return;
+    }
+    
+    setState(() {
+      _showDetailView = showDetails;
+    });
   }
 
   @override
@@ -391,62 +455,63 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
 
   Widget _buildListView() {
     return Obx(() {
+      if (controller.isLoading) {
+        return Container(
+          key: const ValueKey('list'),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            children: List.generate(
+              5,
+              (index) => Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: SkeletonLoader.listItemSkeleton(),
+              ),
+            ),
+          ),
+        );
+      }
+
+      final itemsToShow = controller.selectedItem != null
+          ? controller.childItems
+          : controller.currentItems;
+
+      if (itemsToShow.isEmpty) {
+        return Container(
+          key: const ValueKey('list'),
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: _buildEmptyState(),
+        );
+      }
+
       return Container(
         key: const ValueKey('list'),
         padding: const EdgeInsets.all(AppSpacing.lg),
-        child: CustomScrollView(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          slivers: [_buildContent()],
+        child: Column(
+          children: itemsToShow.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return TweenAnimationBuilder(
+              duration: Duration(milliseconds: 200 + (index * 50)),
+              tween: Tween<double>(begin: 0.0, end: 1.0),
+              builder: (context, double value, child) {
+                return Transform.translate(
+                  offset: Offset(0, (1 - value) * 20),
+                  child: Opacity(
+                    opacity: value,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: _buildItemCard(item),
+                    ),
+                  ),
+                );
+              },
+            );
+          }).toList(),
         ),
       );
     });
   }
 
-  Widget _buildContent() {
-    if (controller.isLoading) {
-      return SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: SkeletonLoader.listItemSkeleton(),
-          ),
-          childCount: 5,
-        ),
-      );
-    }
-
-    final itemsToShow =
-        controller.selectedItem != null
-            ? controller.childItems
-            : controller.currentItems;
-
-    if (itemsToShow.isEmpty) {
-      return SliverFillRemaining(child: _buildEmptyState());
-    }
-
-    return SliverList(
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final item = itemsToShow[index];
-        return TweenAnimationBuilder(
-          duration: Duration(milliseconds: 200 + (index * 50)),
-          tween: Tween<double>(begin: 0.0, end: 1.0),
-          builder: (context, double value, child) {
-            return Transform.translate(
-              offset: Offset(0, (1 - value) * 20),
-              child: Opacity(
-                opacity: value,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: _buildItemCard(item),
-                ),
-              ),
-            );
-          },
-        );
-      }, childCount: itemsToShow.length),
-    );
-  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -607,10 +672,15 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
 
   void _handleItemTap(ListItem item) {
     if (item.level == ListLevel.product) {
+      // Navigate to product detail page
       Get.to(() => const ProductDetailPage(), arguments: item);
     } else {
       final nextLevel = item.level.nextLevel;
       if (nextLevel != null) {
+        // Clean navigation: reset controller state before navigating
+        controller.reset();
+        
+        // Navigate to next level with selected item as parent
         Get.to(
           () => const ListPage(),
           arguments: ListArguments(level: nextLevel, parentItem: item).toMap(),
@@ -869,7 +939,8 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
             child: _buildTabButton(
               label: 'Details',
               isActive: _showDetailView,
-              onTap: () => setState(() => _showDetailView = true),
+              onTap: () => _toggleView(true),
+              isDisabled: !_hasValidDetails,
             ),
           ),
           const SizedBox(width: 8),
@@ -877,7 +948,8 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
             child: _buildTabButton(
               label: 'Navigate',
               isActive: !_showDetailView,
-              onTap: () => setState(() => _showDetailView = false),
+              onTap: () => _toggleView(false),
+              isDisabled: false,
             ),
           ),
         ],
@@ -889,39 +961,59 @@ class _ListPageState extends State<ListPage> with TickerProviderStateMixin {
     required String label,
     required bool isActive,
     required VoidCallback onTap,
+    required bool isDisabled,
   }) {
     return AnimatedContainer(
       duration: AppAnimations.medium,
       curve: AppAnimations.easeInOut,
       decoration: BoxDecoration(
-        gradient:
-            isActive
-                ? LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppTheme.primary, AppTheme.primaryLight],
-                )
-                : null,
+        gradient: isActive && !isDisabled
+            ? LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppTheme.primary, AppTheme.primaryLight],
+              )
+            : null,
+        color: isDisabled 
+            ? AppTheme.neutral100 
+            : (isActive ? null : Colors.transparent),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: isActive ? AppShadows.card : null,
+        boxShadow: isActive && !isDisabled ? AppShadows.card : null,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.md),
-          onTap: onTap,
+          onTap: isDisabled ? null : onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,
               vertical: AppSpacing.sm,
             ),
-            child: Text(
-              label,
-              style: AppTypography.labelMedium.copyWith(
-                color: isActive ? Colors.white : AppTheme.neutral500,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-              ),
-              textAlign: TextAlign.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isDisabled && label.contains('Details'))
+                  Icon(
+                    Icons.block,
+                    size: 14,
+                    color: AppTheme.neutral400,
+                  ),
+                if (isDisabled && label.contains('Details'))
+                  const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: AppTypography.labelMedium.copyWith(
+                    color: isDisabled 
+                        ? AppTheme.neutral400
+                        : (isActive ? Colors.white : AppTheme.neutral500),
+                    fontWeight: isActive && !isDisabled 
+                        ? FontWeight.w600 
+                        : FontWeight.normal,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
         ),

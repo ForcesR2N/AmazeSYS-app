@@ -7,7 +7,7 @@ class RegisterPage extends StatelessWidget {
 
   final AuthController authController = Get.find<AuthController>();
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
@@ -41,13 +41,12 @@ class RegisterPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: emailController,
+              controller: usernameController,
               decoration: const InputDecoration(
-                labelText: 'Email',
+                labelText: 'Username',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.email),
+                prefixIcon: Icon(Icons.person_outline),
               ),
-              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -103,7 +102,7 @@ class RegisterPage extends StatelessWidget {
     }
 
     authController.register(
-      emailController.text,
+      usernameController.text,
       passwordController.text,
       nameController.text,
     );

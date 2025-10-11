@@ -111,7 +111,7 @@ class ProfilePage extends StatelessWidget {
             )),
             const SizedBox(height: AppSpacing.xs),
             Obx(() => Text(
-              authController.currentUser?.email ?? '',
+              authController.currentUser?.username ?? '',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppTheme.neutral500,
               ),

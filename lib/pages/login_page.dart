@@ -7,7 +7,7 @@ class LoginPage extends StatelessWidget {
   LoginPage({super.key});
 
   final AuthController authController = Get.find<AuthController>();
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   @override
@@ -32,7 +32,7 @@ class LoginPage extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 60),
-                  
+
                   // Logo Section with animation
                   TweenAnimationBuilder(
                     duration: const Duration(milliseconds: 800),
@@ -69,9 +69,9 @@ class LoginPage extends StatelessWidget {
                       );
                     },
                   ),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // Welcome Text
                   const Text(
                     'Welcome Back',
@@ -82,9 +82,9 @@ class LoginPage extends StatelessWidget {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   Text(
                     'Sign in to your Amazesys account',
                     style: TextStyle(
@@ -93,9 +93,9 @@ class LoginPage extends StatelessWidget {
                       fontWeight: FontWeight.w400,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 48),
-                  
+
                   // Login Form Card
                   Container(
                     decoration: BoxDecoration(
@@ -114,17 +114,16 @@ class LoginPage extends StatelessWidget {
                       padding: const EdgeInsets.all(32.0),
                       child: Column(
                         children: [
-                          // Email Field
+                          // Username Field
                           _buildTextField(
-                            controller: emailController,
-                            label: 'Email Address',
-                            hint: 'Enter your email',
-                            icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
+                            controller: usernameController,
+                            label: 'Username',
+                            hint: 'Enter your username',
+                            icon: Icons.person_outline,
                           ),
-                          
+
                           const SizedBox(height: 24),
-                          
+
                           // Password Field
                           _buildTextField(
                             controller: passwordController,
@@ -133,14 +132,14 @@ class LoginPage extends StatelessWidget {
                             icon: Icons.lock_outline,
                             isPassword: true,
                           ),
-                          
+
                           const SizedBox(height: 32),
-                          
+
                           // Login Button
                           Obx(() => _buildLoginButton()),
-                          
+
                           const SizedBox(height: 24),
-                          
+
                           // Register Link
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -169,74 +168,6 @@ class LoginPage extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Demo Account Info
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                color: Colors.white.withOpacity(0.8),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Demo Account',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Email: admin@amazesys.com',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Password: 123456',
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
                   const SizedBox(height: 40),
                 ],
               ),
@@ -271,30 +202,17 @@ class LoginPage extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFF9FAFB),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFE5E7EB),
-              width: 1,
-            ),
+            border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
           ),
           child: TextField(
             controller: controller,
             obscureText: isPassword,
             keyboardType: keyboardType,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Color(0xFF111827),
-            ),
+            style: const TextStyle(fontSize: 16, color: Color(0xFF111827)),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 16,
-              ),
-              prefixIcon: Icon(
-                icon,
-                color: const Color(0xFF6B7280),
-                size: 20,
-              ),
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
+              prefixIcon: Icon(icon, color: const Color(0xFF6B7280), size: 20),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -329,32 +247,34 @@ class LoginPage extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: authController.isLoading
-              ? null
-              : () => authController.login(
-                    emailController.text,
+          onTap:
+              authController.isLoading
+                  ? null
+                  : () => authController.login(
+                    usernameController.text,
                     passwordController.text,
                   ),
           child: Container(
             alignment: Alignment.center,
-            child: authController.isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            child:
+                authController.isLoading
+                    ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                    : const Text(
+                      'Sign In',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  )
-                : const Text(
-                    'Sign In',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
           ),
         ),
       ),

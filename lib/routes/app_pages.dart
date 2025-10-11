@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../pages/splash_page.dart';
 import '../pages/login_page.dart';
 import '../pages/register_page.dart';
 import '../pages/home_page.dart';
@@ -27,9 +28,13 @@ abstract class _Paths {
 }
 
 class AppPages {
-  static const INITIAL = Routes.HOME;
+  static const INITIAL = '/splash';
 
   static final routes = [
+    GetPage(
+      name: '/splash',
+      page: () => const SplashPage(),
+    ),
     GetPage(
       name: _Paths.LOGIN,
       page: () => LoginPage(),
