@@ -13,14 +13,15 @@ class ProductDetailPage extends StatefulWidget {
   State<ProductDetailPage> createState() => _ProductDetailPageState();
 }
 
-class _ProductDetailPageState extends State<ProductDetailPage> with TickerProviderStateMixin {
+class _ProductDetailPageState extends State<ProductDetailPage>
+    with TickerProviderStateMixin {
   late ListItem product;
   ProductDetail? productDetail;
   bool isLoading = true;
   String? errorMessage;
-  
+
   final ProductService _productService = ProductService();
-  
+
   late AnimationController _heroController;
   late AnimationController _contentController;
   late Animation<double> _heroAnimation;
@@ -31,33 +32,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
   void initState() {
     super.initState();
     product = Get.arguments as ListItem;
-    
+
     _heroController = AnimationController(
       duration: AppAnimations.medium,
       vsync: this,
     );
-    
+
     _contentController = AnimationController(
       duration: AppAnimations.slow,
       vsync: this,
     );
-    
+
     _heroAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _heroController, curve: AppAnimations.easeOut),
     );
-    
+
     _contentAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentController, curve: AppAnimations.easeOut),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _contentController, curve: AppAnimations.easeOut));
+    ).animate(
+      CurvedAnimation(parent: _contentController, curve: AppAnimations.easeOut),
+    );
 
     // Fetch product detail
     _fetchProductDetail();
-    
+
     // Start animations
     _heroController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -82,7 +85,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
       // Add minimum loading time to show loading state
       final detailFuture = _productService.getProductDetail(product.id);
       final minimumDelay = Future.delayed(const Duration(milliseconds: 800));
-      
+
       await Future.wait([detailFuture, minimumDelay]).then((results) {
         final detail = results[0] as ProductDetail?;
         setState(() {
@@ -105,10 +108,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
       backgroundColor: AppTheme.surfaceVariant,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildHeroSection(),
-          _buildContentSection(),
-        ],
+        slivers: [_buildHeroSection(), _buildContentSection()],
       ),
     );
   }
@@ -216,7 +216,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Container(
-                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
                     child: Column(
                       children: [
                         Text(
@@ -228,29 +230,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                            vertical: AppSpacing.sm,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(AppRadius.full),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            product.code,
-                            style: AppTypography.labelLarge.copyWith(
-                              color: Colors.white.withOpacity(0.95),
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 1,
-                            ),
-                          ),
                         ),
                       ],
                     ),
@@ -271,7 +250,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
         child: SlideTransition(
           position: _slideAnimation,
           child: Container(
-            margin: const EdgeInsets.only(top: -AppSpacing.lg),
+            margin: const EdgeInsets.only(top: 0),
             decoration: const BoxDecoration(
               color: AppTheme.surfaceVariant,
               borderRadius: BorderRadius.only(
@@ -290,7 +269,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
                   _buildQuickStats(),
                   _buildDescriptionSection(),
                   _buildDetailsSection(),
-                  _buildSpecificationsSection(),
                   _buildActionButtons(),
                 ] else
                   _buildNoDataState(),
@@ -305,20 +283,51 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
 
   Widget _buildQuickStats() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xl,
+      ),
       child: Row(
         children: [
-          Expanded(child: _buildStatCard('4.8', 'Rating', Icons.star_outline, AppTheme.warning)),
+          Expanded(
+            child: _buildStatCard(
+              '4.8',
+              'Rating',
+              Icons.star_outline,
+              AppTheme.warning,
+            ),
+          ),
           const SizedBox(width: AppSpacing.md),
-          Expanded(child: _buildStatCard('150+', 'Reviews', Icons.reviews_outlined, AppTheme.success)),
+          Expanded(
+            child: _buildStatCard(
+              '150+',
+              'Reviews',
+              Icons.reviews_outlined,
+              AppTheme.success,
+            ),
+          ),
           const SizedBox(width: AppSpacing.md),
-          Expanded(child: _buildStatCard('24/7', 'Support', Icons.support_agent_outlined, const Color(0xFF8B5CF6))),
+          Expanded(
+            child: _buildStatCard(
+              '24/7',
+              'Support',
+              Icons.support_agent_outlined,
+              const Color(0xFF8B5CF6),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String value, String label, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String value,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -360,11 +369,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
 
   Widget _buildDescriptionSection() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionHeader('Product Description', Icons.description_outlined),
+          _buildSectionHeader(
+            'Product Description',
+            Icons.description_outlined,
+          ),
           const SizedBox(height: AppSpacing.md),
           Container(
             width: double.infinity,
@@ -390,7 +407,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
 
   Widget _buildDetailsSection() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
+      margin: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -405,86 +427,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
             ),
             child: Column(
               children: [
-                _buildDetailRow('Category', productDetail?.categoryName ?? _extractCategory(product.description), true),
+                _buildDetailRow(
+                  'Category',
+                  productDetail?.categoryName ??
+                      _extractCategory(product.description),
+                  true,
+                ),
                 _buildDetailRow('Stock Status', 'In Stock', false),
                 _buildDetailRow('Availability', 'Available', false),
-                _buildDetailRow('SKU', productDetail?.codeId ?? product.code, false),
+                _buildDetailRow(
+                  'SKU',
+                  productDetail?.codeId ?? product.code,
+                  false,
+                ),
                 if (productDetail?.warehouseId != null)
-                  _buildDetailRow('Warehouse ID', productDetail!.warehouseId, false),
+                  _buildDetailRow(
+                    'Warehouse ID',
+                    productDetail!.warehouseId,
+                    false,
+                  ),
                 if (productDetail?.branchId != null)
                   _buildDetailRow('Branch ID', productDetail!.branchId, false),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSpecificationsSection() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.xl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Specifications', Icons.tune_outlined),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppTheme.primary.withOpacity(0.05),
-                  AppTheme.primaryLight.withOpacity(0.02),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(AppRadius.xl),
-              border: Border.all(color: AppTheme.primary.withOpacity(0.1), width: 1),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Icon(
-                        Icons.price_check_outlined,
-                        color: AppTheme.primary,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Contact for Pricing',
-                            style: AppTypography.h4.copyWith(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            'Get personalized pricing and volume discounts by contacting our sales team.',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppTheme.neutral600,
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
@@ -502,11 +465,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
             color: AppTheme.primary.withOpacity(0.1),
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: AppTheme.primary,
-          ),
+          child: Icon(icon, size: 20, color: AppTheme.primary),
         ),
         const SizedBox(width: AppSpacing.md),
         Text(
@@ -524,25 +483,38 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        border: isFirst ? null : const Border(
-          top: BorderSide(color: AppTheme.border, width: 1),
-        ),
+        border:
+            isFirst
+                ? null
+                : const Border(
+                  top: BorderSide(color: AppTheme.border, width: 1),
+                ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: AppTypography.bodyLarge.copyWith(
-              color: AppTheme.neutral600,
-              fontWeight: FontWeight.w500,
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppTheme.neutral600,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: AppTypography.bodyLarge.copyWith(
-              color: AppTheme.neutral900,
-              fontWeight: FontWeight.w600,
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppTheme.neutral900,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3,
             ),
           ),
         ],
@@ -555,34 +527,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
       margin: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          // Primary Action
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton.icon(
-              onPressed: () => _showContactDialog(),
-              icon: const Icon(Icons.phone_outlined, size: 20),
-              label: Text(
-                'Contact Sales',
-                style: AppTypography.buttonLarge.copyWith(
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shadowColor: AppTheme.primary.withOpacity(0.3),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
-                ),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: AppSpacing.md),
-          
-          // Secondary Actions
           Row(
             children: [
               Expanded(
@@ -593,13 +537,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: _buildSecondaryButton(
-                  'Compare',
-                  Icons.compare_arrows_outlined,
-                  () => _showCompareSnackbar(),
-                ),
-              ),
             ],
           ),
         ],
@@ -607,16 +544,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
     );
   }
 
-  Widget _buildSecondaryButton(String label, IconData icon, VoidCallback onTap) {
+  Widget _buildSecondaryButton(
+    String label,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
     return SizedBox(
       height: 48,
       child: OutlinedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 18),
-        label: Text(
-          label,
-          style: AppTypography.buttonMedium,
-        ),
+        label: Text(label, style: AppTypography.buttonMedium),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppTheme.primary,
           side: BorderSide(color: AppTheme.border, width: 1),
@@ -629,11 +567,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
   }
 
   String _extractCategory(String description) {
-    if (description.toLowerCase().contains('smartphone') || 
+    if (description.toLowerCase().contains('smartphone') ||
         description.toLowerCase().contains('phone')) {
       return 'Electronics - Mobile';
-    } else if (description.toLowerCase().contains('laptop') || 
-               description.toLowerCase().contains('computer')) {
+    } else if (description.toLowerCase().contains('laptop') ||
+        description.toLowerCase().contains('computer')) {
       return 'Electronics - Computing';
     } else if (description.toLowerCase().contains('tablet')) {
       return 'Electronics - Tablets';
@@ -642,134 +580,72 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
     }
   }
 
-  void _showContactDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.xxl),
-          ),
-          title: Text(
-            'Contact Sales Team',
-            style: AppTypography.h3.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppTheme.neutral900,
-            ),
-          ),
-          content: Text(
-            'Our sales team will contact you within 24 hours with personalized pricing and product information.',
-            style: AppTypography.bodyLarge.copyWith(
-              color: AppTheme.neutral600,
-              height: 1.5,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Get.back(),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.neutral500,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
-                ),
-              ),
-              child: Text(
-                'Cancel',
-                style: AppTypography.buttonMedium,
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Get.back();
-                Get.snackbar(
-                  'Request Sent!',
-                  'Our sales team will contact you soon.',
-                  backgroundColor: AppTheme.successLight,
-                  colorText: AppTheme.success,
-                  borderRadius: AppRadius.lg,
-                  margin: const EdgeInsets.all(AppSpacing.md),
-                  icon: Icon(Icons.check_circle_outline, color: AppTheme.success),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                ),
-              ),
-              child: Text(
-                'Send Request',
-                style: AppTypography.buttonMedium.copyWith(
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _showShareOptions() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(AppRadius.xxl),
-            topRight: Radius.circular(AppRadius.xxl),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(top: AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppTheme.neutral300,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                ),
+      builder:
+          (context) => Container(
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(AppRadius.xxl),
+                topRight: Radius.circular(AppRadius.xxl),
               ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  children: [
-                    Text(
-                      'Share Product',
-                      style: AppTypography.h3.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.neutral900,
-                      ),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppTheme.neutral300,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Column(
                       children: [
-                        _buildShareOption('WhatsApp', Icons.chat_outlined, AppTheme.success),
-                        _buildShareOption('Email', Icons.email_outlined, AppTheme.primary),
-                        _buildShareOption('Copy Link', Icons.link_outlined, AppTheme.warning),
+                        Text(
+                          'Share Product',
+                          style: AppTypography.h3.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.neutral900,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildShareOption(
+                              'WhatsApp',
+                              Icons.chat_outlined,
+                              AppTheme.success,
+                            ),
+                            _buildShareOption(
+                              'Email',
+                              Icons.email_outlined,
+                              AppTheme.primary,
+                            ),
+                            _buildShareOption(
+                              'Copy Link',
+                              Icons.link_outlined,
+                              AppTheme.warning,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -824,18 +700,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
     );
   }
 
-  void _showCompareSnackbar() {
-    Get.snackbar(
-      'Added to Compare!',
-      'Product added to comparison list',
-      backgroundColor: const Color(0xFF8B5CF6).withOpacity(0.1),
-      colorText: const Color(0xFF8B5CF6),
-      borderRadius: AppRadius.lg,
-      margin: const EdgeInsets.all(AppSpacing.md),
-      icon: Icon(Icons.compare_arrows, color: const Color(0xFF8B5CF6)),
-    );
-  }
-
   Widget _buildLoadingState() {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -872,11 +736,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: AppTheme.error,
-            ),
+            const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'Error Loading Product',

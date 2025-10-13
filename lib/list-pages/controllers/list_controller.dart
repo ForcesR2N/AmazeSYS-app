@@ -10,6 +10,7 @@ import '../../branch/services/branch_service.dart';
 import '../../warehouse/services/warehouse_service.dart';
 import '../../product/services/product_service.dart';
 import '../../utils/network_helper.dart';
+import '../../routes/app_pages.dart';
 
 class ListController extends GetxController {
   final ListService _listService = ListService();
@@ -155,7 +156,7 @@ class ListController extends GetxController {
   /// Navigate to ProductDetailPage
   Future<void> navigateToProductDetail(ListItem product) async {
     // Navigate to ProductDetailPage and pass product as argument
-    Get.toNamed('/product-detail', arguments: product);
+    Get.toNamed(Routes.PRODUCT_DETAIL, arguments: product);
   }
 
   /// Clear selection and back to list view

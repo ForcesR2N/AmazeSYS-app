@@ -517,8 +517,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   void _handleModuleTap(Map<String, dynamic> item) {
     final level = ListLevel.values.firstWhere((e) => e.name == item['level']);
-    final args = ListArguments(level: level);
-    Get.toNamed(Routes.LIST, arguments: args.toMap());
+    Get.toNamed(Routes.CATEGORY_LIST, arguments: level);
   }
 
   void _showProfileMenu(BuildContext context) {
