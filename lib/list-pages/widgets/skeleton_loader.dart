@@ -12,10 +12,7 @@ class SkeletonLoader {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.3),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
       ),
       child: Shimmer.fromColors(
         baseColor: _baseColor,
@@ -95,9 +92,9 @@ class SkeletonLoader {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Content placeholder
               Expanded(
                 child: Column(
@@ -125,7 +122,7 @@ class SkeletonLoader {
                   ],
                 ),
               ),
-              
+
               // Arrow placeholder
               Container(
                 width: 36,
@@ -230,9 +227,9 @@ class SkeletonLoader {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Title placeholder
               Container(
                 height: 18,
@@ -242,9 +239,9 @@ class SkeletonLoader {
                   borderRadius: BorderRadius.circular(9),
                 ),
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Description placeholder
               Container(
                 height: 12,
@@ -254,9 +251,9 @@ class SkeletonLoader {
                   borderRadius: BorderRadius.circular(6),
                 ),
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Arrow placeholder
               Container(
                 width: 32,
@@ -356,33 +353,36 @@ class SkeletonLoader {
             ),
             const SizedBox(height: 16),
             // Info rows placeholders
-            ...List.generate(4, (index) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Label placeholder
-                  Container(
-                    height: 12,
-                    width: 80 + (index * 20).toDouble(),
-                    decoration: BoxDecoration(
-                      color: _baseColor,
-                      borderRadius: BorderRadius.circular(6),
+            ...List.generate(
+              4,
+              (index) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Label placeholder
+                    Container(
+                      height: 12,
+                      width: 80 + (index * 20).toDouble(),
+                      decoration: BoxDecoration(
+                        color: _baseColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Value placeholder
-                  Container(
-                    height: 14,
-                    width: 150 + (index * 30).toDouble(),
-                    decoration: BoxDecoration(
-                      color: _baseColor,
-                      borderRadius: BorderRadius.circular(7),
+                    const SizedBox(height: 4),
+                    // Value placeholder
+                    Container(
+                      height: 14,
+                      width: 150 + (index * 30).toDouble(),
+                      decoration: BoxDecoration(
+                        color: _baseColor,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),

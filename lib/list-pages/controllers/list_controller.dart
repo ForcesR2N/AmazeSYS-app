@@ -11,6 +11,7 @@ import '../../warehouse/services/warehouse_service.dart';
 import '../../product/services/product_service.dart';
 import '../../utils/network_helper.dart';
 import '../../routes/app_pages.dart';
+import '../../core/theme/app_theme.dart';
 
 class ListController extends GetxController {
   final ListService _listService = ListService();
@@ -18,30 +19,34 @@ class ListController extends GetxController {
   final BranchService _branchService = BranchService();
   final WarehouseService _warehouseService = WarehouseService();
   final ProductService _productService = ProductService();
-  
+
   // List data
   final RxList<ListItem> currentItems = <ListItem>[].obs;
   final RxList<ListItem> childItems = <ListItem>[].obs;
   final Rxn<ListItem> selectedItem = Rxn<ListItem>();
-  
+
+  // Navigation stack to track parent items for proper back navigation
+  final List<ListItem> _navigationStack = [];
+
   // Detail data
   final Rxn<dynamic> selectedDetail = Rxn<dynamic>();
   final RxBool isLoadingDetail = false.obs;
   final RxnString detailError = RxnString();
-  
+
   // View state
   final RxBool isShowingDetail = false.obs;
-  final RxBool hasValidDetails = false.obs;
-  
+
   // General
   final RxBool isLoading = false.obs;
   final RxString searchQuery = ''.obs;
   final RxnString errorMessage = RxnString();
-  
+
   // Computed getters
-  List<ListItem> get displayItems => selectedItem.value != null ? childItems : currentItems;
-  bool get canToggleDetail => hasValidDetails.value;
-  ListLevel? get currentLevel => selectedItem.value?.level.nextLevel ?? (currentItems.isNotEmpty ? currentItems.first.level : null);
+  List<ListItem> get displayItems =>
+      selectedItem.value != null ? childItems : currentItems;
+  ListLevel? get currentLevel =>
+      selectedItem.value?.level.nextLevel ??
+      (currentItems.isNotEmpty ? currentItems.first.level : null);
 
   /// Load root level items (e.g., all companies)
   Future<void> loadRootItems(ListLevel level) async {
@@ -51,16 +56,17 @@ class ListController extends GetxController {
       selectedItem.value = null;
       selectedDetail.value = null;
       childItems.clear();
-      
+      _navigationStack
+          .clear(); // Clear navigation stack when loading root items
+
       // Add minimum loading time to show loading state
       final loadingFuture = _listService.getItemsByLevel(level);
       final minimumDelay = Future.delayed(const Duration(milliseconds: 800));
-      
+
       await Future.wait([loadingFuture, minimumDelay]).then((results) {
         final items = results[0] as List<ListItem>;
         currentItems.value = items;
-        isShowingDetail.value = false; // Show list
-        hasValidDetails.value = false;
+        isShowingDetail.value = false; // Show list view first
       });
     } catch (e) {
       errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
@@ -72,34 +78,69 @@ class ListController extends GetxController {
   }
 
   /// Load children of a parent item
-  Future<void> loadItemWithChildren(ListItem parentItem) async {
+  Future<void> loadItemWithChildren(
+    ListItem parentItem, {
+    bool addToStack = true,
+  }) async {
     try {
       isLoading.value = true;
       errorMessage.value = null;
+
+      // Add current parent to navigation stack for back navigation (only if not coming from back navigation)
+      if (addToStack) {
+        _navigationStack.add(parentItem);
+      }
+
       selectedItem.value = parentItem; // Set context
       selectedDetail.value = null;
       childItems.clear();
-      
+      isLoadingDetail.value = true;
+
+      // Create futures for both children and parent detail
+      final List<Future> futures = [];
+
       final nextLevel = parentItem.level.nextLevel;
       if (nextLevel != null) {
-        // Add minimum loading time to show loading state
-        final loadingFuture = _listService.getChildrenByLevel(parentItem.id, nextLevel);
-        final minimumDelay = Future.delayed(const Duration(milliseconds: 600));
-        
-        await Future.wait([loadingFuture, minimumDelay]).then((results) {
-          final children = results[0] as List<ListItem>;
-          childItems.value = children;
-        });
+        futures.add(_listService.getChildrenByLevel(parentItem.id, nextLevel));
       }
-      
-      isShowingDetail.value = false; // Show children list first
-      hasValidDetails.value = false;
+
+      // Also load the parent item's detail
+      futures.add(_fetchDetailByLevel(parentItem.id, parentItem.level));
+
+      // Add minimum loading time to show loading state
+      futures.add(Future.delayed(const Duration(milliseconds: 600)));
+
+      // Add timeout for the entire operation (15 seconds best practice)
+      await Future.wait(futures)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              throw Exception('Loading timeout after 15 seconds');
+            },
+          )
+          .then((results) {
+            if (nextLevel != null && results.isNotEmpty) {
+              final children = results[0] as List<ListItem>;
+              childItems.value = children;
+            }
+
+            // Set the parent detail (second future result)
+            if (results.length > 1) {
+              selectedDetail.value =
+                  results[results.length -
+                      2]; // Detail is second-to-last (before delay)
+            }
+          });
+
+      isShowingDetail.value =
+          false; // Show list view first, user can toggle to detail
     } catch (e) {
       errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
       childItems.clear();
       print('Error loading children: $e');
     } finally {
       isLoading.value = false;
+      isLoadingDetail.value = false; // Clear detail loading state
     }
   }
 
@@ -108,37 +149,34 @@ class ListController extends GetxController {
     selectedItem.value = item;
     isLoadingDetail.value = true;
     detailError.value = null;
-    hasValidDetails.value = false;
-    
+
     try {
       // Add minimum loading time to show loading state
       final detailFuture = _fetchDetailByLevel(item.id, item.level);
       final minimumDelay = Future.delayed(const Duration(milliseconds: 500));
-      
-      await Future.wait([detailFuture, minimumDelay]).then((results) {
-        final detail = results[0];
-        selectedDetail.value = detail;
-        
-        final isValid = _validateDetail(detail);
-        hasValidDetails.value = isValid;
-        
-        if (isValid) {
-          isShowingDetail.value = true; // Auto show detail
-        } else {
-          Get.snackbar(
-            'Info', 
-            'Detail not available for this item',
-            snackPosition: SnackPosition.BOTTOM,
-            duration: const Duration(seconds: 2),
-          );
-          // Stay in list view
-        }
-      });
+
+      final results = await Future.wait([detailFuture, minimumDelay]).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Detail loading timeout after 15 seconds');
+        },
+      );
+      final detail = results[0];
+
+      // Set the detail regardless of whether it's null or not
+      selectedDetail.value = detail;
+
+      if (detail != null) {
+        print('✅ Company detail loaded successfully: ${detail.toString()}');
+      } else {
+        print(
+          '⚠️ Company detail is null - will show "no data available" screen',
+        );
+      }
     } catch (e) {
-      detailError.value = NetworkHelper.getUserFriendlyErrorMessage(e);
-      hasValidDetails.value = false;
-      print('Error loading detail: $e');
-      // Stay in list view
+      print('💥 Exception during detail loading: $e');
+      // Don't set error state, just keep the detail tab available
+      // The UI will show "no data available" if selectedDetail is null
     } finally {
       isLoadingDetail.value = false;
     }
@@ -146,11 +184,15 @@ class ListController extends GetxController {
 
   /// Toggle between detail and list view
   void toggleView() {
-    if (!hasValidDetails.value) {
-      Get.snackbar('Info', 'Detail not available');
-      return;
-    }
     isShowingDetail.value = !isShowingDetail.value;
+
+    // If switching to detail view and no detail loaded yet, load it
+    if (isShowingDetail.value &&
+        selectedItem.value != null &&
+        selectedDetail.value == null &&
+        !isLoadingDetail.value) {
+      selectItemAndValidate(selectedItem.value!);
+    }
   }
 
   /// Navigate to ProductDetailPage
@@ -159,36 +201,69 @@ class ListController extends GetxController {
     Get.toNamed(Routes.PRODUCT_DETAIL, arguments: product);
   }
 
+  /// Smart hierarchical back navigation
+  Future<void> navigateBack() async {
+    if (_navigationStack.isNotEmpty) {
+      // Pop the current item from stack
+      _navigationStack.removeLast();
+
+      if (_navigationStack.isNotEmpty) {
+        // If there's still a parent in stack, go back to that parent's level
+        final parentItem = _navigationStack.last;
+        await loadItemWithChildren(parentItem, addToStack: false);
+      } else {
+        // If stack is empty, go back to root level (currentItems)
+        selectedItem.value = null;
+        selectedDetail.value = null;
+        childItems.clear();
+        isShowingDetail.value = false;
+        detailError.value = null;
+        errorMessage.value = null;
+
+        // Show the root level items that should be in currentItems
+        if (currentItems.isEmpty && currentLevel != null) {
+          await loadRootItems(currentLevel!);
+        }
+      }
+    } else {
+      // If we're at root level, go back to previous page (CategoryListPage)
+      Get.back();
+    }
+  }
+
+  /// Get parent level for hierarchical navigation
+  ListLevel? _getParentLevel(ListLevel currentLevel) {
+    switch (currentLevel) {
+      case ListLevel.product:
+        return ListLevel.warehouse;
+      case ListLevel.warehouse:
+        return ListLevel.branch;
+      case ListLevel.branch:
+        return ListLevel.company;
+      case ListLevel.company:
+        return null; // Company is root level
+    }
+  }
+
   /// Clear selection and back to list view
   void clearSelection() {
     selectedItem.value = null;
     selectedDetail.value = null;
     childItems.clear();
     isShowingDetail.value = false;
-    hasValidDetails.value = false;
     detailError.value = null;
     errorMessage.value = null;
+    _navigationStack.clear(); // Clear navigation stack
   }
 
-  /// Retry loading root items
-  Future<void> retryLoadRootItems() async {
-    if (currentItems.isEmpty && !isLoading.value) {
-      final level = currentLevel ?? ListLevel.company;
-      await loadRootItems(level);
-    }
-  }
-
-  /// Retry loading children items
-  Future<void> retryLoadChildren() async {
-    if (selectedItem.value != null && childItems.isEmpty && !isLoading.value) {
+  /// Unified retry method - simpler approach
+  Future<void> retry() async {
+    if (selectedItem.value != null) {
+      // Retry loading the selected item and its details
       await loadItemWithChildren(selectedItem.value!);
-    }
-  }
-
-  /// Retry loading detail
-  Future<void> retryLoadDetail() async {
-    if (selectedItem.value != null && !isLoadingDetail.value) {
-      await selectItemAndValidate(selectedItem.value!);
+    } else if (currentLevel != null) {
+      // Retry loading root items
+      await loadRootItems(currentLevel!);
     }
   }
 
@@ -216,12 +291,5 @@ class ListController extends GetxController {
       case ListLevel.product:
         throw Exception('Product details should use ProductDetailPage');
     }
-  }
-
-  /// Check if detail has required fields
-  bool _validateDetail(dynamic detail) {
-    return detail != null && 
-           detail.name != null && 
-           detail.name.toString().isNotEmpty;
   }
 }

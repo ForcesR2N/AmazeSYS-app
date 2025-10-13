@@ -51,34 +51,47 @@ class CompanyDetail {
   });
 
   factory CompanyDetail.fromJson(Map<String, dynamic> json) {
-    return CompanyDetail(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      code: json['code'] as String,
-      description: json['description'] as String? ?? '',
-      categoryId: json['category_id'] as String,
-      categoryName: json['category_name'] as String?,
-      address: json['address'] as String?,
-      picName: json['pic_name'] as String?,
-      picContact: json['pic_contact'] as String?,
-      note: json['note'] as String?,
-      provinceId: json['province_id'] as String?,
-      provinceName: json['province_name'] as String?,
-      districtId: json['district_id'] as String?,
-      districtName: json['district_name'] as String?,
-      subdistrictId: json['subdistrict_id'] as String?,
-      subdistrictName: json['subdistrict_name'] as String?,
-      wardId: json['ward_id'] as String?,
-      wardName: json['ward_name'] as String?,
-      zipcodeId: json['zipcode_id'] as String?,
-      zipcode: json['zipcode'] as String?,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at'] as String) 
-          : null,
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at'] as String) 
-          : null,
-    );
+    try {
+      return CompanyDetail(
+        id: json['id']?.toString() ?? '',
+        name: json['name']?.toString() ?? '',
+        code: json['code_id']?.toString() ?? json['code']?.toString() ?? '', // API uses 'code_id'
+        description: json['description']?.toString() ?? '',
+        categoryId: json['category_id']?.toString() ?? '',
+        categoryName: json['category_name']?.toString(),
+        address: json['address']?.toString(),
+        picName: json['pic_name']?.toString(),
+        picContact: json['pic_contact']?.toString(),
+        note: json['note']?.toString(),
+        provinceId: json['province_id']?.toString(),
+        provinceName: json['province_name']?.toString(),
+        districtId: json['district_id']?.toString(),
+        districtName: json['district_name']?.toString(),
+        subdistrictId: json['subdistrict_id']?.toString(),
+        subdistrictName: json['subdistrict_name']?.toString(),
+        wardId: json['ward_id']?.toString(),
+        wardName: json['ward_name']?.toString(),
+        zipcodeId: json['zipcode_id']?.toString(),
+        zipcode: json['zipcode']?.toString(),
+        createdAt: json['created_at'] != null 
+            ? DateTime.tryParse(json['created_at'].toString())
+            : null,
+        updatedAt: json['updated_at'] != null 
+            ? DateTime.tryParse(json['updated_at'].toString())
+            : null,
+      );
+    } catch (e) {
+      print('🚨 Error parsing CompanyDetail JSON: $e');
+      print('🚨 Raw JSON: $json');
+      // Return a minimal valid object instead of throwing
+      return CompanyDetail(
+        id: json['id']?.toString() ?? 'unknown',
+        name: json['name']?.toString() ?? 'Unknown Company',
+        code: json['code_id']?.toString() ?? json['code']?.toString() ?? 'N/A',
+        description: json['description']?.toString() ?? 'No description',
+        categoryId: json['category_id']?.toString() ?? '',
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {

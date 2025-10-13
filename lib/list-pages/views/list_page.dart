@@ -30,9 +30,14 @@ class ListPage extends StatelessWidget {
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppTheme.surfaceVariant,
-      body: CustomScrollView(
+    return WillPopScope(
+      onWillPop: () async {
+        await controller.navigateBack();
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.surfaceVariant,
+        body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
           _buildAppBar(controller),
@@ -42,7 +47,9 @@ class ListPage extends StatelessWidget {
       ),
       floatingActionButton: Obx(() {
         // Only show refresh button when there's data and not currently loading
-        if (controller.displayItems.isNotEmpty && !controller.isLoading.value && !controller.isLoadingDetail.value) {
+        if (controller.displayItems.isNotEmpty &&
+            !controller.isLoading.value &&
+            !controller.isLoadingDetail.value) {
           return FloatingActionButton(
             onPressed: () => controller.refresh(),
             backgroundColor: AppTheme.primary,
@@ -52,7 +59,8 @@ class ListPage extends StatelessWidget {
         }
         return const SizedBox.shrink();
       }),
-    );
+      ), // Close Scaffold
+    ); // Close WillPopScope
   }
 
   Widget _buildAppBar(ListController controller) {
@@ -74,7 +82,7 @@ class ListPage extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            onTap: () => Get.back(),
+            onTap: () async => await controller.navigateBack(),
             child: const Icon(
               Icons.arrow_back_rounded,
               size: 20,
@@ -98,14 +106,17 @@ class ListPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (controller.isLoading.value || controller.isLoadingDetail.value)
+                if (controller.isLoading.value ||
+                    controller.isLoadingDetail.value)
                   Container(
                     width: 16,
                     height: 16,
                     margin: const EdgeInsets.only(left: AppSpacing.sm),
                     child: const CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primary),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppTheme.primary,
+                      ),
                     ),
                   ),
               ],
@@ -126,7 +137,7 @@ class ListPage extends StatelessWidget {
   String _getBreadcrumbText(ListController controller) {
     final selectedItem = controller.selectedItem.value;
     final currentLevel = controller.currentLevel;
-    
+
     if (selectedItem != null && currentLevel != null) {
       return '${selectedItem.level.displayName} > ${currentLevel.displayName}';
     } else if (controller.currentItems.isNotEmpty) {
@@ -135,7 +146,10 @@ class ListPage extends StatelessWidget {
     return 'Items';
   }
 
-  Widget _buildHeaderSection(ListController controller, TextEditingController searchController) {
+  Widget _buildHeaderSection(
+    ListController controller,
+    TextEditingController searchController,
+  ) {
     return SliverToBoxAdapter(
       child: Container(
         color: AppTheme.surface,
@@ -250,7 +264,7 @@ class ListPage extends StatelessWidget {
                 label: 'Detail',
                 isActive: controller.isShowingDetail.value,
                 onTap: () => controller.toggleView(),
-                isDisabled: !controller.canToggleDetail,
+                isDisabled: false, // Always allow detail tab
               ),
             ),
             const SizedBox(width: 8),
@@ -277,9 +291,10 @@ class ListPage extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
-        color: isActive && !isDisabled
-            ? AppTheme.primary
-            : (isDisabled ? AppTheme.neutral100 : Colors.transparent),
+        color:
+            isActive && !isDisabled
+                ? AppTheme.primary
+                : (isDisabled ? AppTheme.neutral100 : Colors.transparent),
         borderRadius: BorderRadius.circular(AppRadius.md),
         boxShadow: isActive && !isDisabled ? AppShadows.card : null,
       ),
@@ -297,22 +312,20 @@ class ListPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (isDisabled && label.contains('Detail'))
-                  const Icon(
-                    Icons.block,
-                    size: 14,
-                    color: AppTheme.neutral400,
-                  ),
+                  const Icon(Icons.block, size: 14, color: AppTheme.neutral400),
                 if (isDisabled && label.contains('Detail'))
                   const SizedBox(width: 4),
                 Text(
                   label,
                   style: AppTypography.labelMedium.copyWith(
-                    color: isDisabled 
-                        ? AppTheme.neutral400
-                        : (isActive ? Colors.white : AppTheme.neutral500),
-                    fontWeight: isActive && !isDisabled 
-                        ? FontWeight.w600 
-                        : FontWeight.normal,
+                    color:
+                        isDisabled
+                            ? AppTheme.neutral400
+                            : (isActive ? Colors.white : AppTheme.neutral500),
+                    fontWeight:
+                        isActive && !isDisabled
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -326,7 +339,12 @@ class ListPage extends StatelessWidget {
 
   Widget _buildContentSection(ListController controller) {
     return SliverToBoxAdapter(
-      child: Obx(() => controller.isShowingDetail.value ? _buildDetailView(controller) : _buildListView(controller)),
+      child: Obx(
+        () =>
+            controller.isShowingDetail.value
+                ? _buildDetailView(controller)
+                : _buildListView(controller),
+      ),
     );
   }
 
@@ -348,7 +366,8 @@ class ListPage extends StatelessWidget {
       }
 
       // Show error state if there's an error and no items
-      if (controller.errorMessage.value != null && controller.displayItems.isEmpty) {
+      if (controller.errorMessage.value != null &&
+          controller.displayItems.isEmpty) {
         return _buildListErrorState(controller);
       }
 
@@ -368,12 +387,13 @@ class ListPage extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
-              children: items.map((item) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                  child: _buildItemCard(item, controller),
-                );
-              }).toList(),
+              children:
+                  items.map((item) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: _buildItemCard(item, controller),
+                    );
+                  }).toList(),
             ),
           ),
         ),
@@ -466,9 +486,7 @@ class ListPage extends StatelessWidget {
                 ElevatedButton.icon(
                   onPressed: () {
                     if (controller.selectedItem.value != null) {
-                      controller.retryLoadChildren();
-                    } else {
-                      controller.retryLoadRootItems();
+                      controller.retry();
                     }
                   },
                   icon: const Icon(Icons.refresh, size: 20),
@@ -581,15 +599,15 @@ class ListPage extends StatelessWidget {
       if (controller.isLoadingDetail.value) {
         return _buildDetailLoadingState();
       }
-      
+
       if (controller.detailError.value != null) {
         return _buildDetailErrorState(controller);
       }
-      
+
       if (controller.selectedDetail.value == null) {
-        return _buildNoDetailState();
+        return _buildNoDataAvailableWidget();
       }
-      
+
       return _buildDetailWidgetForLevel(controller.selectedDetail.value);
     });
   }
@@ -616,11 +634,7 @@ class ListPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: AppTheme.error,
-            ),
+            const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'Error Loading Detail',
@@ -642,7 +656,7 @@ class ListPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton.icon(
-                  onPressed: () => controller.retryLoadDetail(),
+                  onPressed: () => controller.retry(),
                   icon: const Icon(Icons.refresh, size: 20),
                   label: const Text('Retry'),
                   style: ElevatedButton.styleFrom(
@@ -719,8 +733,10 @@ class ListPage extends StatelessWidget {
       return BranchDetailWidget(detail: detail);
     } else if (detail is WarehouseDetail) {
       return WarehouseDetailWidget(detail: detail);
+    } else if (detail == null) {
+      return _buildNoDataAvailableWidget();
     }
-    
+
     return _buildGenericDetailWidget(detail);
   }
 
@@ -739,17 +755,79 @@ class ListPage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.info_outlined,
-                  color: AppTheme.info,
-                  size: 20,
-                ),
+                const Icon(Icons.info_outlined, color: AppTheme.info, size: 20),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     '$type detail widget will be implemented soon for $name',
                     style: AppTypography.bodyMedium.copyWith(
                       color: AppTheme.info,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoDataAvailableWidget() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              boxShadow: AppShadows.card,
+              border: Border.all(color: AppTheme.border),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppTheme.infoLight,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    size: 40,
+                    color: AppTheme.info,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Details Not Available',
+                  style: AppTypography.h3.copyWith(
+                    color: AppTheme.neutral700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Detail information is currently not available for this item. This could be due to API connectivity issues or missing data.',
+                  style: AppTypography.bodyLarge.copyWith(
+                    color: AppTheme.neutral500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                OutlinedButton.icon(
+                  onPressed: () => Get.find<ListController>().retry(),
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Try Again'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    side: BorderSide(color: AppTheme.primary, width: 1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                   ),
                 ),
@@ -773,11 +851,24 @@ class ListPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: AppTheme.border),
             ),
-            child: Text(
-              'Detail loaded: ${detail.toString()}',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppTheme.neutral700,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Raw Detail Data',
+                  style: AppTypography.h4.copyWith(
+                    color: AppTheme.neutral700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Detail loaded: ${detail.toString()}',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppTheme.neutral600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -787,9 +878,11 @@ class ListPage extends StatelessWidget {
 
   void _handleItemTap(ListItem item, ListController controller) {
     if (item.level == ListLevel.product) {
+      // Products go to ProductDetailPage
       controller.navigateToProductDetail(item);
     } else {
-      controller.selectItemAndValidate(item);
+      // Company/Branch/Warehouse should load their children
+      controller.loadItemWithChildren(item);
     }
   }
 

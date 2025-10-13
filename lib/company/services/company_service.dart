@@ -11,12 +11,17 @@ class CompanyService {
       final response = await _apiClient.get('/api/companies/$companyId');
       
       if (response.statusCode == ApiConstants.statusOk && response.data != null) {
-        return CompanyDetail.fromJson(response.data as Map<String, dynamic>);
+        try {
+          final companyDetail = CompanyDetail.fromJson(response.data as Map<String, dynamic>);
+          return companyDetail;
+        } catch (parseError) {
+          // Return null instead of throwing, let the controller handle it
+          return null;
+        }
       } else {
         return null;
       }
     } catch (e) {
-      print('Error fetching company detail: $e');
       return null;
     }
   }
