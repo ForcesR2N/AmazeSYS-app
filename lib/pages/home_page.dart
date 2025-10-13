@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/auth_controller.dart';
-import '../controllers/navbar_controller.dart';
-import '../models/list_item.dart';
-import '../models/list_arguments.dart';
+import '../auth/controllers/auth_controller.dart';
+import '../navbar/controllers/navbar_controller.dart';
+import '../list-pages/models/list_item.dart';
+import '../list-pages/models/list_arguments.dart';
 import '../routes/app_pages.dart';
 import '../core/theme/app_theme.dart';
-import '../services/list_service.dart';
-import '../widgets/bottom_navbar.dart';
-import 'table_page.dart';
-import 'profile_page.dart';
+import '../list-pages/services/list_service.dart';
+import '../navbar/widgets/bottom_navbar.dart';
+import '../table/views/table_page.dart';
+import '../profile/views/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

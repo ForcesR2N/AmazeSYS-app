@@ -1,15 +1,15 @@
 import 'package:get/get.dart';
 import '../pages/splash_page.dart';
-import '../pages/login_page.dart';
-import '../pages/register_page.dart';
+import '../auth/views/login_page.dart';
+import '../auth/views/register_page.dart';
 import '../pages/home_page.dart';
-import '../pages/list_page.dart';
-import '../pages/product_detail_page.dart';
-import '../pages/table_page.dart';
-import '../pages/profile_page.dart';
-import '../bindings/auth_binding.dart';
-import '../bindings/list_binding.dart';
-import '../bindings/navbar_binding.dart';
+import '../list-pages/views/list_page.dart';
+import '../product/views/product_detail_page.dart';
+import '../table/views/table_page.dart';
+import '../profile/views/profile_page.dart';
+import '../auth/bindings/auth_binding.dart';
+import '../list-pages/bindings/list_binding.dart';
+import '../navbar/bindings/navbar_binding.dart';
 
 abstract class Routes {
   static const LOGIN = _Paths.LOGIN;
