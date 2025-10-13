@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/list_item.dart';
+import '../models/product_detail_model.dart';
+import '../services/product_service.dart';
 import '../core/theme/app_theme.dart';
+import '../widgets/skeleton_loader.dart';
 
 class ProductDetailPage extends StatefulWidget {
   const ProductDetailPage({super.key});
@@ -12,6 +15,12 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> with TickerProviderStateMixin {
   late ListItem product;
+  ProductDetail? productDetail;
+  bool isLoading = true;
+  String? errorMessage;
+  
+  final ProductService _productService = ProductService();
+  
   late AnimationController _heroController;
   late AnimationController _contentController;
   late Animation<double> _heroAnimation;
@@ -46,6 +55,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _contentController, curve: AppAnimations.easeOut));
 
+    // Fetch product detail
+    _fetchProductDetail();
+    
     // Start animations
     _heroController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -58,6 +70,33 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
     _heroController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchProductDetail() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      // Add minimum loading time to show loading state
+      final detailFuture = _productService.getProductDetail(product.id);
+      final minimumDelay = Future.delayed(const Duration(milliseconds: 800));
+      
+      await Future.wait([detailFuture, minimumDelay]).then((results) {
+        final detail = results[0] as ProductDetail?;
+        setState(() {
+          productDetail = detail;
+          isLoading = false;
+        });
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Failed to load product detail: $e';
+        isLoading = false;
+      });
+      print('Error loading product detail: $e');
+    }
   }
 
   @override
@@ -243,11 +282,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
             child: Column(
               children: [
                 const SizedBox(height: AppSpacing.xl),
-                _buildQuickStats(),
-                _buildDescriptionSection(),
-                _buildDetailsSection(),
-                _buildSpecificationsSection(),
-                _buildActionButtons(),
+                if (isLoading)
+                  _buildLoadingState()
+                else if (errorMessage != null)
+                  _buildErrorState()
+                else if (productDetail != null) ...[
+                  _buildQuickStats(),
+                  _buildDescriptionSection(),
+                  _buildDetailsSection(),
+                  _buildSpecificationsSection(),
+                  _buildActionButtons(),
+                ] else
+                  _buildNoDataState(),
                 const SizedBox(height: AppSpacing.xl),
               ],
             ),
@@ -330,7 +376,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
               border: Border.all(color: AppTheme.border, width: 1),
             ),
             child: Text(
-              product.description,
+              productDetail?.description ?? product.description,
               style: AppTypography.bodyLarge.copyWith(
                 color: AppTheme.neutral700,
                 height: 1.6,
@@ -359,10 +405,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
             ),
             child: Column(
               children: [
-                _buildDetailRow('Category', _extractCategory(product.description), true),
+                _buildDetailRow('Category', productDetail?.categoryName ?? _extractCategory(product.description), true),
                 _buildDetailRow('Stock Status', 'In Stock', false),
                 _buildDetailRow('Availability', 'Available', false),
-                _buildDetailRow('SKU', product.code, false),
+                _buildDetailRow('SKU', productDetail?.codeId ?? product.code, false),
+                if (productDetail?.warehouseId != null)
+                  _buildDetailRow('Warehouse ID', productDetail!.warehouseId, false),
+                if (productDetail?.branchId != null)
+                  _buildDetailRow('Branch ID', productDetail!.branchId, false),
               ],
             ),
           ),
@@ -783,6 +833,120 @@ class _ProductDetailPageState extends State<ProductDetailPage> with TickerProvid
       borderRadius: AppRadius.lg,
       margin: const EdgeInsets.all(AppSpacing.md),
       icon: Icon(Icons.compare_arrows, color: const Color(0xFF8B5CF6)),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        children: [
+          // Quick stats skeleton
+          Row(
+            children: [
+              Expanded(child: SkeletonLoader.detailCardSkeleton()),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: SkeletonLoader.detailCardSkeleton()),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(child: SkeletonLoader.detailCardSkeleton()),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          // Description skeleton
+          SkeletonLoader.detailCardSkeleton(),
+          const SizedBox(height: AppSpacing.xl),
+          // Details skeleton
+          SkeletonLoader.detailCardSkeleton(),
+          const SizedBox(height: AppSpacing.xl),
+          // Specifications skeleton
+          SkeletonLoader.detailCardSkeleton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: AppTheme.error,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Error Loading Product',
+              style: AppTypography.h3.copyWith(
+                color: AppTheme.neutral700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              errorMessage ?? 'Unknown error occurred',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppTheme.neutral500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: _fetchProductDetail,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoDataState() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTheme.neutral100,
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                size: 40,
+                color: AppTheme.neutral400,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Product Not Found',
+              style: AppTypography.h3.copyWith(
+                color: AppTheme.neutral700,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Product information is not available',
+              style: AppTypography.bodyLarge.copyWith(
+                color: AppTheme.neutral500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

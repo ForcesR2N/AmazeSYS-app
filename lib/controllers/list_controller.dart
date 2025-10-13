@@ -1,115 +1,226 @@
-import 'dart:async';
 import 'package:get/get.dart';
 import '../models/list_item.dart';
+import '../models/company_detail_model.dart';
+import '../models/branch_detail_model.dart';
+import '../models/warehouse_detail_model.dart';
+import '../models/product_detail_model.dart';
 import '../services/list_service.dart';
+import '../services/company_service.dart';
+import '../services/branch_service.dart';
+import '../services/warehouse_service.dart';
+import '../services/product_service.dart';
+import '../utils/network_helper.dart';
 
 class ListController extends GetxController {
   final ListService _listService = ListService();
+  final CompanyService _companyService = CompanyService();
+  final BranchService _branchService = BranchService();
+  final WarehouseService _warehouseService = WarehouseService();
+  final ProductService _productService = ProductService();
   
-  final RxList<ListItem> _currentItems = <ListItem>[].obs;
-  final RxList<ListItem> _childItems = <ListItem>[].obs;
-  final Rxn<ListItem> _selectedItem = Rxn<ListItem>();
-  final RxBool _isLoading = false.obs;
-  final RxString _searchQuery = ''.obs;
+  // List data
+  final RxList<ListItem> currentItems = <ListItem>[].obs;
+  final RxList<ListItem> childItems = <ListItem>[].obs;
+  final Rxn<ListItem> selectedItem = Rxn<ListItem>();
   
-  Timer? _debounce;
+  // Detail data
+  final Rxn<dynamic> selectedDetail = Rxn<dynamic>();
+  final RxBool isLoadingDetail = false.obs;
+  final RxnString detailError = RxnString();
+  
+  // View state
+  final RxBool isShowingDetail = false.obs;
+  final RxBool hasValidDetails = false.obs;
+  
+  // General
+  final RxBool isLoading = false.obs;
+  final RxString searchQuery = ''.obs;
+  final RxnString errorMessage = RxnString();
+  
+  // Computed getters
+  List<ListItem> get displayItems => selectedItem.value != null ? childItems : currentItems;
+  bool get canToggleDetail => hasValidDetails.value;
+  ListLevel? get currentLevel => selectedItem.value?.level.nextLevel ?? (currentItems.isNotEmpty ? currentItems.first.level : null);
 
-  List<ListItem> get currentItems => _currentItems;
-  List<ListItem> get childItems => _childItems;
-  ListItem? get selectedItem => _selectedItem.value;
-  bool get isLoading => _isLoading.value;
-  String get searchQuery => _searchQuery.value;
-
+  /// Load root level items (e.g., all companies)
   Future<void> loadRootItems(ListLevel level) async {
     try {
-      _isLoading.value = true;
-      _selectedItem.value = null;
-      _childItems.clear();
-      _searchQuery.value = '';
+      isLoading.value = true;
+      errorMessage.value = null;
+      selectedItem.value = null;
+      selectedDetail.value = null;
+      childItems.clear();
       
-      final items = await _listService.getItemsByLevel(level);
-      _currentItems.value = items;
+      // Add minimum loading time to show loading state
+      final loadingFuture = _listService.getItemsByLevel(level);
+      final minimumDelay = Future.delayed(const Duration(milliseconds: 800));
+      
+      await Future.wait([loadingFuture, minimumDelay]).then((results) {
+        final items = results[0] as List<ListItem>;
+        currentItems.value = items;
+        isShowingDetail.value = false; // Show list
+        hasValidDetails.value = false;
+      });
     } catch (e) {
-      Get.snackbar('Error', 'Failed to load items: $e');
+      errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
+      currentItems.clear();
+      print('Error loading root items: $e');
     } finally {
-      _isLoading.value = false;
+      isLoading.value = false;
     }
   }
 
-  Future<void> loadItemWithChildren(ListItem item) async {
+  /// Load children of a parent item
+  Future<void> loadItemWithChildren(ListItem parentItem) async {
     try {
-      _isLoading.value = true;
-      _selectedItem.value = item;
-      _searchQuery.value = '';
+      isLoading.value = true;
+      errorMessage.value = null;
+      selectedItem.value = parentItem; // Set context
+      selectedDetail.value = null;
+      childItems.clear();
       
-      final nextLevel = item.level.nextLevel;
+      final nextLevel = parentItem.level.nextLevel;
       if (nextLevel != null) {
-        final children = await _listService.getChildrenByLevel(item.id, nextLevel);
-        _childItems.value = children;
-      } else {
-        _childItems.clear();
+        // Add minimum loading time to show loading state
+        final loadingFuture = _listService.getChildrenByLevel(parentItem.id, nextLevel);
+        final minimumDelay = Future.delayed(const Duration(milliseconds: 600));
+        
+        await Future.wait([loadingFuture, minimumDelay]).then((results) {
+          final children = results[0] as List<ListItem>;
+          childItems.value = children;
+        });
       }
-    } catch (e) {
-      Get.snackbar('Error', 'Failed to load children: $e');
-    } finally {
-      _isLoading.value = false;
-    }
-  }
-
-  Future<void> search(String query, ListLevel level, [String? parentId]) async {
-    try {
-      _searchQuery.value = query;
       
-      if (query.isEmpty) {
-        if (parentId != null) {
-          final children = await _listService.getChildrenByLevel(parentId, level);
-          _childItems.value = children;
-        } else {
-          final items = await _listService.getItemsByLevel(level);
-          _currentItems.value = items;
-        }
-      } else {
-        final results = await _listService.searchItems(query, level, parentId);
-        if (parentId != null) {
-          _childItems.value = results;
-        } else {
-          _currentItems.value = results;
-        }
-      }
+      isShowingDetail.value = false; // Show children list first
+      hasValidDetails.value = false;
     } catch (e) {
-      Get.snackbar('Error', 'Search failed: $e');
+      errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
+      childItems.clear();
+      print('Error loading children: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  void clearSearch() {
-    _searchQuery.value = '';
-    if (_selectedItem.value != null) {
-      loadItemWithChildren(_selectedItem.value!);
-    }
-  }
-
-  // Debounced search to avoid rapid API calls
-  void searchWithDebounce(String query, ListLevel level, {String? parentId}) {
-    // Cancel existing timer if active
-    _debounce?.cancel();
+  /// User taps item (non-product), fetch detail and validate
+  Future<void> selectItemAndValidate(ListItem item) async {
+    selectedItem.value = item;
+    isLoadingDetail.value = true;
+    detailError.value = null;
+    hasValidDetails.value = false;
     
-    // Create new timer with 300ms delay
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      search(query, level, parentId);
-    });
+    try {
+      // Add minimum loading time to show loading state
+      final detailFuture = _fetchDetailByLevel(item.id, item.level);
+      final minimumDelay = Future.delayed(const Duration(milliseconds: 500));
+      
+      await Future.wait([detailFuture, minimumDelay]).then((results) {
+        final detail = results[0];
+        selectedDetail.value = detail;
+        
+        final isValid = _validateDetail(detail);
+        hasValidDetails.value = isValid;
+        
+        if (isValid) {
+          isShowingDetail.value = true; // Auto show detail
+        } else {
+          Get.snackbar(
+            'Info', 
+            'Detail not available for this item',
+            snackPosition: SnackPosition.BOTTOM,
+            duration: const Duration(seconds: 2),
+          );
+          // Stay in list view
+        }
+      });
+    } catch (e) {
+      detailError.value = NetworkHelper.getUserFriendlyErrorMessage(e);
+      hasValidDetails.value = false;
+      print('Error loading detail: $e');
+      // Stay in list view
+    } finally {
+      isLoadingDetail.value = false;
+    }
   }
 
-  void reset() {
-    _currentItems.clear();
-    _childItems.clear();
-    _selectedItem.value = null;
-    _isLoading.value = false;
-    _searchQuery.value = '';
+  /// Toggle between detail and list view
+  void toggleView() {
+    if (!hasValidDetails.value) {
+      Get.snackbar('Info', 'Detail not available');
+      return;
+    }
+    isShowingDetail.value = !isShowingDetail.value;
   }
 
-  @override
-  void onClose() {
-    _debounce?.cancel();
-    super.onClose();
+  /// Navigate to ProductDetailPage
+  Future<void> navigateToProductDetail(ListItem product) async {
+    // Navigate to ProductDetailPage and pass product as argument
+    Get.toNamed('/product-detail', arguments: product);
+  }
+
+  /// Clear selection and back to list view
+  void clearSelection() {
+    selectedItem.value = null;
+    selectedDetail.value = null;
+    childItems.clear();
+    isShowingDetail.value = false;
+    hasValidDetails.value = false;
+    detailError.value = null;
+    errorMessage.value = null;
+  }
+
+  /// Retry loading root items
+  Future<void> retryLoadRootItems() async {
+    if (currentItems.isEmpty && !isLoading.value) {
+      final level = currentLevel ?? ListLevel.company;
+      await loadRootItems(level);
+    }
+  }
+
+  /// Retry loading children items
+  Future<void> retryLoadChildren() async {
+    if (selectedItem.value != null && childItems.isEmpty && !isLoading.value) {
+      await loadItemWithChildren(selectedItem.value!);
+    }
+  }
+
+  /// Retry loading detail
+  Future<void> retryLoadDetail() async {
+    if (selectedItem.value != null && !isLoadingDetail.value) {
+      await selectItemAndValidate(selectedItem.value!);
+    }
+  }
+
+  /// Refresh current data
+  Future<void> refresh() async {
+    if (selectedItem.value != null) {
+      // Refresh children data
+      await loadItemWithChildren(selectedItem.value!);
+    } else if (currentItems.isNotEmpty) {
+      // Refresh root items
+      final level = currentItems.first.level;
+      await loadRootItems(level);
+    }
+  }
+
+  /// Fetch full detail based on level
+  Future<dynamic> _fetchDetailByLevel(String id, ListLevel level) async {
+    switch (level) {
+      case ListLevel.company:
+        return await _companyService.getCompanyDetail(id);
+      case ListLevel.branch:
+        return await _branchService.getBranchDetail(id);
+      case ListLevel.warehouse:
+        return await _warehouseService.getWarehouseDetail(id);
+      case ListLevel.product:
+        throw Exception('Product details should use ProductDetailPage');
+    }
+  }
+
+  /// Check if detail has required fields
+  bool _validateDetail(dynamic detail) {
+    return detail != null && 
+           detail.name != null && 
+           detail.name.toString().isNotEmpty;
   }
 }

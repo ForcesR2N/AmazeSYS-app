@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/company_detail_model.dart';
+import '../../models/branch_detail_model.dart';
 import '../../core/theme/app_theme.dart';
-import 'base_detail_widget.dart';
 
-class CompanyDetailWidget extends StatelessWidget {
-  final CompanyDetail detail;
+class BranchDetailWidget extends StatelessWidget {
+  final BranchDetail detail;
   
-  const CompanyDetailWidget({super.key, required this.detail});
+  const BranchDetailWidget({super.key, required this.detail});
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      key: const ValueKey('company-detail'),
+      key: const ValueKey('branch-detail'),
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,27 +22,51 @@ class CompanyDetailWidget extends StatelessWidget {
 
   List<Widget> _buildDetailSections() {
     return [
-      // Basic Company Information
+      // Basic Branch Information
       _buildInfoSection(
         title: 'Information',
-        icon: Icons.business_outlined,
-        color: AppTheme.primary,
+        icon: Icons.store_outlined,
+        color: AppTheme.success,
         children: [
           _buildInfoRow('Name', detail.name),
-          _buildInfoRow('Code', detail.code),
+          if (detail.codeId?.isNotEmpty == true)
+            _buildInfoRow('Code', detail.codeId!),
           _buildInfoRow('Description', detail.description),
-          _buildInfoRow('Category', detail.categoryName ?? 'Not specified'),
           if (detail.note?.isNotEmpty == true)
             _buildInfoRow('Notes', detail.note!),
         ],
       ),
 
-      // Address & Location Information  
+      // Company Information
+      _buildInfoSection(
+        title: 'Company',
+        icon: Icons.business_outlined,
+        color: AppTheme.primary,
+        children: [
+          _buildInfoRow('Company ID', detail.companyId),
+        ],
+      ),
+
+      // Contact Information
+      if (_hasContactInfo())
+        _buildInfoSection(
+          title: 'Contact Information',
+          icon: Icons.contact_phone_outlined,
+          color: AppTheme.info,
+          children: [
+            if (detail.picName?.isNotEmpty == true)
+              _buildInfoRow('Person in Charge', detail.picName!),
+            if (detail.picContact?.isNotEmpty == true)
+              _buildInfoRow('Contact Number', detail.picContact!),
+          ],
+        ),
+
+      // Address Information  
       if (_hasLocationInfo())
         _buildInfoSection(
           title: 'Address',
           icon: Icons.location_on_outlined,
-          color: AppTheme.success,
+          color: AppTheme.warning,
           children: [
             if (detail.address?.isNotEmpty == true)
               _buildInfoRow('Street Address', detail.address!),
@@ -55,17 +78,15 @@ class CompanyDetailWidget extends StatelessWidget {
               _buildInfoRow('District (Kabupaten/Kota)', detail.districtName!),
             if (detail.provinceName?.isNotEmpty == true)
               _buildInfoRow('Province', detail.provinceName!),
-            if (detail.zipcode?.isNotEmpty == true)
-              _buildInfoRow('Postal Code', detail.zipcode!),
             if (detail.fullAddress.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(top: AppSpacing.sm),
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppTheme.success.withOpacity(0.1),
+                  color: AppTheme.warning.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
-                    color: AppTheme.success.withOpacity(0.3),
+                    color: AppTheme.warning.withOpacity(0.3),
                   ),
                 ),
                 child: Column(
@@ -76,13 +97,13 @@ class CompanyDetailWidget extends StatelessWidget {
                         Icon(
                           Icons.location_on_rounded,
                           size: 16,
-                          color: AppTheme.success,
+                          color: AppTheme.warning,
                         ),
                         const SizedBox(width: AppSpacing.xs),
                         Text(
                           'Full Address',
                           style: AppTypography.labelSmall.copyWith(
-                            color: AppTheme.success,
+                            color: AppTheme.warning,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -102,27 +123,13 @@ class CompanyDetailWidget extends StatelessWidget {
           ],
         ),
 
-      // Contact Information (PIC)
-      if (_hasContactInfo())
-        _buildInfoSection(
-          title: 'Contact Information',
-          icon: Icons.contact_phone_outlined,
-          color: AppTheme.info,
-          children: [
-            if (detail.picName?.isNotEmpty == true)
-              _buildInfoRow('Person in Charge', detail.picName!),
-            if (detail.picContact?.isNotEmpty == true)
-              _buildInfoRow('Contact Number', detail.picContact!),
-          ],
-        ),
-
       // System Information
       _buildInfoSection(
         title: 'System Information',
         icon: Icons.info_outlined,
         color: AppTheme.neutral500,
         children: [
-          _buildInfoRow('Company ID', detail.id),
+          _buildInfoRow('Branch ID', detail.id),
           if (detail.createdAt != null)
             _buildInfoRow('Created Date', _formatDateTime(detail.createdAt!)),
           if (detail.updatedAt != null)
@@ -210,8 +217,7 @@ class CompanyDetailWidget extends StatelessWidget {
            (detail.wardName?.isNotEmpty == true) ||
            (detail.subdistrictName?.isNotEmpty == true) ||
            (detail.districtName?.isNotEmpty == true) ||
-           (detail.provinceName?.isNotEmpty == true) ||
-           (detail.zipcode?.isNotEmpty == true);
+           (detail.provinceName?.isNotEmpty == true);
   }
 
   bool _hasContactInfo() {
