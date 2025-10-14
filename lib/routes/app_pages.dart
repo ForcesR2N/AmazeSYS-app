@@ -64,6 +64,13 @@ class AppPages {
       page: () => const ListPage(),
       binding: ListBinding(),
     ),
-    GetPage(name: _Paths.PRODUCT_DETAIL, page: () => const ProductDetailPage()),
+    GetPage(
+      name: _Paths.PRODUCT_DETAIL, 
+      page: () => const ProductDetailPage(),
+      binding: BindingsBuilder(() {
+        // ProductDetailController is created with Get.put in the page itself
+        // to ensure NavigationStackManager is already available
+      }),
+    ),
   ];
 }

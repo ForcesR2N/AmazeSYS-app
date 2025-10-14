@@ -12,6 +12,7 @@ import '../../product/services/product_service.dart';
 import '../../utils/network_helper.dart';
 import '../../routes/app_pages.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/navigation_stack_manager.dart';
 
 class ListController extends GetxController {
   final ListService _listService = ListService();
@@ -25,8 +26,7 @@ class ListController extends GetxController {
   final RxList<ListItem> childItems = <ListItem>[].obs;
   final Rxn<ListItem> selectedItem = Rxn<ListItem>();
 
-  // Navigation stack to track parent items for proper back navigation
-  final List<ListItem> _navigationStack = [];
+  final NavigationStackManager _navigationManager = Get.find<NavigationStackManager>();
 
   // Detail data
   final Rxn<dynamic> selectedDetail = Rxn<dynamic>();
@@ -44,8 +44,7 @@ class ListController extends GetxController {
   // Computed getters
   List<ListItem> get displayItems =>
       selectedItem.value != null ? childItems : currentItems;
-  ListLevel? get currentLevel =>
-      selectedItem.value?.level.nextLevel ??
+  ListLevel? get currentLevel => _navigationManager.currentLevel ?? 
       (currentItems.isNotEmpty ? currentItems.first.level : null);
 
   /// Load root level items (e.g., all companies)
@@ -56,8 +55,7 @@ class ListController extends GetxController {
       selectedItem.value = null;
       selectedDetail.value = null;
       childItems.clear();
-      _navigationStack
-          .clear(); // Clear navigation stack when loading root items
+      _navigationManager.clear();
 
       // Add minimum loading time to show loading state
       final loadingFuture = _listService.getItemsByLevel(level);
@@ -66,7 +64,12 @@ class ListController extends GetxController {
       await Future.wait([loadingFuture, minimumDelay]).then((results) {
         final items = results[0] as List<ListItem>;
         currentItems.value = items;
-        isShowingDetail.value = false; // Show list view first
+        // If we have items, automatically select the first one and show its detail
+        if (items.isNotEmpty) {
+          selectedItem.value = items.first;
+          selectItemAndValidate(items.first);
+        }
+        isShowingDetail.value = true; // Always show detail view first
       });
     } catch (e) {
       errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
@@ -86,31 +89,21 @@ class ListController extends GetxController {
       isLoading.value = true;
       errorMessage.value = null;
 
-      // Add current parent to navigation stack for back navigation (only if not coming from back navigation)
-      if (addToStack) {
-        _navigationStack.add(parentItem);
-      }
-
-      selectedItem.value = parentItem; // Set context
+      selectedItem.value = parentItem;
       selectedDetail.value = null;
       childItems.clear();
       isLoadingDetail.value = true;
 
-      // Create futures for both children and parent detail
       final List<Future> futures = [];
-
       final nextLevel = parentItem.level.nextLevel;
+      
       if (nextLevel != null) {
         futures.add(_listService.getChildrenByLevel(parentItem.id, nextLevel));
       }
-
-      // Also load the parent item's detail
+      
       futures.add(_fetchDetailByLevel(parentItem.id, parentItem.level));
-
-      // Add minimum loading time to show loading state
       futures.add(Future.delayed(const Duration(milliseconds: 600)));
 
-      // Add timeout for the entire operation (15 seconds best practice)
       await Future.wait(futures)
           .timeout(
             const Duration(seconds: 15),
@@ -124,16 +117,23 @@ class ListController extends GetxController {
               childItems.value = children;
             }
 
-            // Set the parent detail (second future result)
             if (results.length > 1) {
-              selectedDetail.value =
-                  results[results.length -
-                      2]; // Detail is second-to-last (before delay)
+              selectedDetail.value = results[results.length - 2];
+            }
+            
+            if (addToStack) {
+              _navigationManager.pushPage(
+                selectedItem: selectedItem.value,
+                currentItems: currentItems,
+                childItems: childItems,
+                selectedDetail: selectedDetail.value,
+                level: parentItem.level,
+                isShowingDetail: isShowingDetail.value,
+              );
             }
           });
 
-      isShowingDetail.value =
-          false; // Show list view first, user can toggle to detail
+      isShowingDetail.value = true; // Always show detail view first, user can toggle to list
     } catch (e) {
       errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
       childItems.clear();
@@ -198,39 +198,211 @@ class ListController extends GetxController {
   /// Navigate to ProductDetailPage
   Future<void> navigateToProductDetail(ListItem product) async {
     // Navigate to ProductDetailPage and pass product as argument
-    Get.toNamed(Routes.PRODUCT_DETAIL, arguments: product);
+    final result = await Get.toNamed(Routes.PRODUCT_DETAIL, arguments: product);
+    
+    // When returning from product detail, ensure we're showing detail view
+    if (result != null && result['showDetailFirst'] == true) {
+      isShowingDetail.value = true;
+    }
   }
 
-  /// Smart hierarchical back navigation
   Future<void> navigateBack() async {
-    if (_navigationStack.isNotEmpty) {
-      // Pop the current item from stack
-      _navigationStack.removeLast();
-
-      if (_navigationStack.isNotEmpty) {
-        // If there's still a parent in stack, go back to that parent's level
-        final parentItem = _navigationStack.last;
-        await loadItemWithChildren(parentItem, addToStack: false);
+    if (_navigationManager.canGoBack()) {
+      final poppedPage = _navigationManager.popPage();
+      
+      if (poppedPage != null) {
+        isLoading.value = true;
+        
+        try {
+          if (poppedPage.isStale) {
+            await _restoreStalePageState(poppedPage);
+          } else {
+            _restoreFreshPageState(poppedPage);
+          }
+        } finally {
+          isLoading.value = false;
+        }
       } else {
-        // If stack is empty, go back to root level (currentItems)
-        selectedItem.value = null;
-        selectedDetail.value = null;
-        childItems.clear();
-        isShowingDetail.value = false;
-        detailError.value = null;
-        errorMessage.value = null;
-
-        // Show the root level items that should be in currentItems
-        if (currentItems.isEmpty && currentLevel != null) {
-          await loadRootItems(currentLevel!);
+        final rootLevel = _navigationManager.rootLevel;
+        if (rootLevel != null) {
+          await loadRootItems(rootLevel);
         }
       }
     } else {
-      // If we're at root level, go back to previous page (CategoryListPage)
       Get.back();
     }
   }
 
+  /// Clear selection and back to detail view (auto-select first item)
+  void clearSelection() {
+    selectedItem.value = null;
+    selectedDetail.value = null;
+    childItems.clear();
+    isShowingDetail.value = true;
+    detailError.value = null;
+    errorMessage.value = null;
+    _navigationManager.clear();
+    
+    // Auto-select the first item if available
+    if (currentItems.isNotEmpty) {
+      selectedItem.value = currentItems.first;
+      selectItemAndValidate(currentItems.first);
+    }
+  }
+
+  /// Unified retry method - simpler approach
+  Future<void> retry() async {
+    if (selectedItem.value != null) {
+      // Retry loading the selected item and its details - don't add to stack
+      await loadItemWithChildren(selectedItem.value!, addToStack: false);
+    } else if (currentLevel != null) {
+      // Retry loading root items
+      await loadRootItems(currentLevel!);
+    }
+  }
+
+  /// Refresh current data
+  Future<void> refresh() async {
+    if (selectedItem.value != null) {
+      // Refresh children data - don't add to stack
+      await loadItemWithChildren(selectedItem.value!, addToStack: false);
+    } else if (currentItems.isNotEmpty) {
+      // Refresh root items
+      final level = currentItems.first.level;
+      await loadRootItems(level);
+    }
+  }
+
+  /// Restore fresh page state instantly (no API calls)
+  void _restoreFreshPageState(PageState pageState) {
+    selectedItem.value = pageState.selectedItem;
+    currentItems.value = pageState.currentItems;
+    childItems.value = pageState.childItems;
+    selectedDetail.value = pageState.selectedDetail;
+    isShowingDetail.value = true; // Always show detail first regardless of previous state
+    errorMessage.value = null;
+    detailError.value = null;
+  }
+  
+  /// Restore stale page state with complete data refresh
+  Future<void> _restoreStalePageState(PageState pageState) async {
+    errorMessage.value = null;
+    detailError.value = null;
+    
+    if (pageState.selectedItem != null) {
+      // Scenario: User was viewing children of selectedItem
+      // Need to restore: currentItems + childItems + selectedDetail
+      await _restoreHierarchicalLevel(pageState);
+    } else {
+      // Scenario: User was at root level
+      // Need to restore: currentItems only
+      await _restoreRootLevel(pageState.level);
+    }
+  }
+  
+  /// Restore hierarchical level with complete data
+  Future<void> _restoreHierarchicalLevel(PageState pageState) async {
+    final selectedItemData = pageState.selectedItem!;
+    selectedItem.value = selectedItemData;
+    
+    // Create futures for parallel loading
+    final List<Future> futures = [];
+    
+    // 1. Fetch currentItems (parent level items that contain selectedItem)
+    final parentLevel = _getParentLevel(selectedItemData.level);
+    if (parentLevel != null) {
+      // Find the parent container for selectedItem
+      futures.add(_fetchParentLevelItems(selectedItemData, parentLevel));
+    }
+    
+    // 2. Fetch childItems (children of selectedItem)
+    final nextLevel = selectedItemData.level.nextLevel;
+    if (nextLevel != null) {
+      futures.add(_listService.getChildrenByLevel(selectedItemData.id, nextLevel));
+    }
+    
+    // 3. Fetch selectedDetail (detail of selectedItem)
+    futures.add(_fetchDetailByLevel(selectedItemData.id, selectedItemData.level));
+    
+    // 4. Add minimum loading time
+    futures.add(Future.delayed(const Duration(milliseconds: 600)));
+    
+    try {
+      final results = await Future.wait(futures).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Loading timeout after 15 seconds');
+        },
+      );
+      
+      int resultIndex = 0;
+      
+      // Process parent level items
+      if (parentLevel != null) {
+        final parentItems = results[resultIndex] as List<ListItem>;
+        currentItems.value = parentItems;
+        resultIndex++;
+      }
+      
+      // Process child items
+      if (nextLevel != null) {
+        final children = results[resultIndex] as List<ListItem>;
+        childItems.value = children;
+        resultIndex++;
+      } else {
+        childItems.clear();
+      }
+      
+      // Process selected detail
+      selectedDetail.value = results[resultIndex];
+      
+      // Restore UI state - always show detail first
+      isShowingDetail.value = true;
+      
+    } catch (e) {
+      errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
+      print('Error restoring stale page state: $e');
+    }
+  }
+  
+  /// Restore root level items
+  Future<void> _restoreRootLevel(ListLevel level) async {
+    selectedItem.value = null;
+    selectedDetail.value = null;
+    childItems.clear();
+    isShowingDetail.value = true;
+    
+    try {
+      final loadingFuture = _listService.getItemsByLevel(level);
+      final minimumDelay = Future.delayed(const Duration(milliseconds: 600));
+      
+      await Future.wait([loadingFuture, minimumDelay]).then((results) {
+        final items = results[0] as List<ListItem>;
+        currentItems.value = items;
+        // Auto-select the first item and show its detail
+        if (items.isNotEmpty) {
+          selectedItem.value = items.first;
+          selectItemAndValidate(items.first);
+        }
+      });
+    } catch (e) {
+      errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
+      currentItems.clear();
+      print('Error restoring root level: $e');
+    }
+  }
+  
+  /// Fetch parent level items that contain the given item
+  Future<List<ListItem>> _fetchParentLevelItems(ListItem childItem, ListLevel parentLevel) async {
+    // If we know the parentId, we can fetch siblings directly
+    if (childItem.parentId != null) {
+      return await _listService.getChildrenByLevel(childItem.parentId!, childItem.level);
+    }
+    
+    // Fallback: fetch all items at parent level (less efficient but works)
+    return await _listService.getItemsByLevel(parentLevel);
+  }
+  
   /// Get parent level for hierarchical navigation
   ListLevel? _getParentLevel(ListLevel currentLevel) {
     switch (currentLevel) {
@@ -244,41 +416,7 @@ class ListController extends GetxController {
         return null; // Company is root level
     }
   }
-
-  /// Clear selection and back to list view
-  void clearSelection() {
-    selectedItem.value = null;
-    selectedDetail.value = null;
-    childItems.clear();
-    isShowingDetail.value = false;
-    detailError.value = null;
-    errorMessage.value = null;
-    _navigationStack.clear(); // Clear navigation stack
-  }
-
-  /// Unified retry method - simpler approach
-  Future<void> retry() async {
-    if (selectedItem.value != null) {
-      // Retry loading the selected item and its details
-      await loadItemWithChildren(selectedItem.value!);
-    } else if (currentLevel != null) {
-      // Retry loading root items
-      await loadRootItems(currentLevel!);
-    }
-  }
-
-  /// Refresh current data
-  Future<void> refresh() async {
-    if (selectedItem.value != null) {
-      // Refresh children data
-      await loadItemWithChildren(selectedItem.value!);
-    } else if (currentItems.isNotEmpty) {
-      // Refresh root items
-      final level = currentItems.first.level;
-      await loadRootItems(level);
-    }
-  }
-
+  
   /// Fetch full detail based on level
   Future<dynamic> _fetchDetailByLevel(String id, ListLevel level) async {
     switch (level) {

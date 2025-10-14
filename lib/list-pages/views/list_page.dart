@@ -11,6 +11,7 @@ import '../../core/theme/app_theme.dart';
 import '../../company/widgets/company_detail_widget.dart';
 import '../../branch/widgets/branch_detail_widget.dart';
 import '../../warehouse/widgets/warehouse_detail_widget.dart';
+import '../widgets/breadcrumb_widget.dart';
 
 class ListPage extends StatelessWidget {
   const ListPage({super.key});
@@ -38,27 +39,27 @@ class ListPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppTheme.surfaceVariant,
         body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildAppBar(controller),
-          _buildHeaderSection(controller, searchController),
-          _buildContentSection(controller),
-        ],
-      ),
-      floatingActionButton: Obx(() {
-        // Only show refresh button when there's data and not currently loading
-        if (controller.displayItems.isNotEmpty &&
-            !controller.isLoading.value &&
-            !controller.isLoadingDetail.value) {
-          return FloatingActionButton(
-            onPressed: () => controller.refresh(),
-            backgroundColor: AppTheme.primary,
-            foregroundColor: Colors.white,
-            child: const Icon(Icons.refresh),
-          );
-        }
-        return const SizedBox.shrink();
-      }),
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildAppBar(controller),
+            _buildHeaderSection(controller, searchController),
+            _buildContentSection(controller),
+          ],
+        ),
+        floatingActionButton: Obx(() {
+          // Only show refresh button when there's data and not currently loading
+          if (controller.displayItems.isNotEmpty &&
+              !controller.isLoading.value &&
+              !controller.isLoadingDetail.value) {
+            return FloatingActionButton(
+              onPressed: () => controller.refresh(),
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.refresh),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
       ), // Close Scaffold
     ); // Close WillPopScope
   }
@@ -97,15 +98,6 @@ class ListPage extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    _getBreadcrumbText(controller),
-                    style: AppTypography.h4.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.neutral900,
-                    ),
-                  ),
-                ),
                 if (controller.isLoading.value ||
                     controller.isLoadingDetail.value)
                   Container(
@@ -121,13 +113,7 @@ class ListPage extends StatelessWidget {
                   ),
               ],
             ),
-            if (controller.selectedItem.value != null)
-              Text(
-                controller.selectedItem.value!.displayName,
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppTheme.neutral500,
-                ),
-              ),
+            const BreadcrumbWidget(),
           ],
         );
       }),
@@ -139,7 +125,7 @@ class ListPage extends StatelessWidget {
     final currentLevel = controller.currentLevel;
 
     if (selectedItem != null && currentLevel != null) {
-      return '${selectedItem.level.displayName} > ${currentLevel.displayName}';
+      return currentLevel.displayName;
     } else if (controller.currentItems.isNotEmpty) {
       return controller.currentItems.first.level.displayName;
     }

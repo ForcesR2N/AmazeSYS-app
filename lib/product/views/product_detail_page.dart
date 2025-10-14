@@ -5,22 +5,33 @@ import '../models/product_detail_model.dart';
 import '../services/product_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../list-pages/widgets/skeleton_loader.dart';
+import '../controllers/product_detail_controller.dart';
 
-class ProductDetailPage extends StatefulWidget {
+class ProductDetailPage extends StatelessWidget {
   const ProductDetailPage({super.key});
 
   @override
-  State<ProductDetailPage> createState() => _ProductDetailPageState();
+  Widget build(BuildContext context) {
+    final ProductDetailController controller = Get.put(ProductDetailController());
+    
+    return WillPopScope(
+      onWillPop: () async {
+        controller.navigateBack();
+        return false;
+      },
+      child: _ProductDetailPageContent(),
+    );
+  }
 }
 
-class _ProductDetailPageState extends State<ProductDetailPage>
-    with TickerProviderStateMixin {
-  late ListItem product;
-  ProductDetail? productDetail;
-  bool isLoading = true;
-  String? errorMessage;
+class _ProductDetailPageContent extends StatefulWidget {
+  @override
+  State<_ProductDetailPageContent> createState() => _ProductDetailPageContentState();
+}
 
-  final ProductService _productService = ProductService();
+class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
+    with TickerProviderStateMixin {
+  final ProductDetailController controller = Get.find<ProductDetailController>();
 
   late AnimationController _heroController;
   late AnimationController _contentController;
@@ -31,7 +42,6 @@ class _ProductDetailPageState extends State<ProductDetailPage>
   @override
   void initState() {
     super.initState();
-    product = Get.arguments as ListItem;
 
     _heroController = AnimationController(
       duration: AppAnimations.medium,
@@ -58,9 +68,6 @@ class _ProductDetailPageState extends State<ProductDetailPage>
       CurvedAnimation(parent: _contentController, curve: AppAnimations.easeOut),
     );
 
-    // Fetch product detail
-    _fetchProductDetail();
-
     // Start animations
     _heroController.forward();
     Future.delayed(const Duration(milliseconds: 200), () {
@@ -75,32 +82,6 @@ class _ProductDetailPageState extends State<ProductDetailPage>
     super.dispose();
   }
 
-  Future<void> _fetchProductDetail() async {
-    try {
-      setState(() {
-        isLoading = true;
-        errorMessage = null;
-      });
-
-      // Add minimum loading time to show loading state
-      final detailFuture = _productService.getProductDetail(product.id);
-      final minimumDelay = Future.delayed(const Duration(milliseconds: 800));
-
-      await Future.wait([detailFuture, minimumDelay]).then((results) {
-        final detail = results[0] as ProductDetail?;
-        setState(() {
-          productDetail = detail;
-          isLoading = false;
-        });
-      });
-    } catch (e) {
-      setState(() {
-        errorMessage = 'Failed to load product detail: $e';
-        isLoading = false;
-      });
-      print('Error loading product detail: $e');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +112,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            onTap: () => Get.back(),
+            onTap: () => controller.navigateBack(),
             child: const Icon(
               Icons.arrow_back_rounded,
               size: 20,
@@ -187,7 +168,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
                 children: [
                   const SizedBox(height: 60),
                   Hero(
-                    tag: 'product-${product.id}',
+                    tag: 'product-${controller.product.id}',
                     child: Container(
                       width: 120,
                       height: 120,
@@ -222,7 +203,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
                     child: Column(
                       children: [
                         Text(
-                          product.name,
+                          controller.product.name,
                           style: AppTypography.h2.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -261,17 +242,24 @@ class _ProductDetailPageState extends State<ProductDetailPage>
             child: Column(
               children: [
                 const SizedBox(height: AppSpacing.xl),
-                if (isLoading)
-                  _buildLoadingState()
-                else if (errorMessage != null)
-                  _buildErrorState()
-                else if (productDetail != null) ...[
-                  _buildQuickStats(),
-                  _buildDescriptionSection(),
-                  _buildDetailsSection(),
-                  _buildActionButtons(),
-                ] else
-                  _buildNoDataState(),
+                Obx(() {
+                  if (controller.isLoading.value) {
+                    return _buildLoadingState();
+                  } else if (controller.errorMessage.value != null) {
+                    return _buildErrorState();
+                  } else if (controller.productDetail.value != null) {
+                    return Column(
+                      children: [
+                        _buildQuickStats(),
+                        _buildDescriptionSection(),
+                        _buildDetailsSection(),
+                        _buildActionButtons(),
+                      ],
+                    );
+                  } else {
+                    return _buildNoDataState();
+                  }
+                }),
                 const SizedBox(height: AppSpacing.xl),
               ],
             ),
@@ -393,7 +381,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
               border: Border.all(color: AppTheme.border, width: 1),
             ),
             child: Text(
-              productDetail?.description ?? product.description,
+              controller.productDetail.value?.description ?? controller.product.description,
               style: AppTypography.bodyLarge.copyWith(
                 color: AppTheme.neutral700,
                 height: 1.6,
@@ -429,25 +417,25 @@ class _ProductDetailPageState extends State<ProductDetailPage>
               children: [
                 _buildDetailRow(
                   'Category',
-                  productDetail?.categoryName ??
-                      _extractCategory(product.description),
+                  controller.productDetail.value?.categoryName ??
+                      _extractCategory(controller.product.description),
                   true,
                 ),
                 _buildDetailRow('Stock Status', 'In Stock', false),
                 _buildDetailRow('Availability', 'Available', false),
                 _buildDetailRow(
                   'SKU',
-                  productDetail?.codeId ?? product.code,
+                  controller.productDetail.value?.codeId ?? controller.product.code,
                   false,
                 ),
-                if (productDetail?.warehouseId != null)
+                if (controller.productDetail.value?.warehouseId != null)
                   _buildDetailRow(
                     'Warehouse ID',
-                    productDetail!.warehouseId,
+                    controller.productDetail.value!.warehouseId,
                     false,
                   ),
-                if (productDetail?.branchId != null)
-                  _buildDetailRow('Branch ID', productDetail!.branchId, false),
+                if (controller.productDetail.value?.branchId != null)
+                  _buildDetailRow('Branch ID', controller.productDetail.value!.branchId, false),
               ],
             ),
           ),
@@ -747,7 +735,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              errorMessage ?? 'Unknown error occurred',
+              controller.errorMessage.value ?? 'Unknown error occurred',
               style: AppTypography.bodyMedium.copyWith(
                 color: AppTheme.neutral500,
               ),
@@ -755,7 +743,7 @@ class _ProductDetailPageState extends State<ProductDetailPage>
             ),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
-              onPressed: _fetchProductDetail,
+              onPressed: controller.retry,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
