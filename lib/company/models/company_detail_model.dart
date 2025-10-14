@@ -81,8 +81,6 @@ class CompanyDetail {
             : null,
       );
     } catch (e) {
-      print('🚨 Error parsing CompanyDetail JSON: $e');
-      print('🚨 Raw JSON: $json');
       // Return a minimal valid object instead of throwing
       return CompanyDetail(
         id: json['id']?.toString() ?? 'unknown',
@@ -98,7 +96,7 @@ class CompanyDetail {
     return {
       'id': id,
       'name': name,
-      'code': code,
+      'code_id': code,
       'description': description,
       'category_id': categoryId,
       'category_name': categoryName,

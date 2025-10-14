@@ -8,10 +8,12 @@ import '../list-pages/views/category_list_page.dart';
 import '../product/views/product_detail_page.dart';
 import '../table/views/table_page.dart';
 import '../profile/views/profile_page.dart';
+import '../company/views/company_form_page.dart';
 import '../auth/bindings/auth_binding.dart';
 import '../list-pages/bindings/list_binding.dart';
 import '../list-pages/bindings/category_list_binding.dart';
 import '../navbar/bindings/navbar_binding.dart';
+import '../company/bindings/company_form_binding.dart';
 
 abstract class Routes {
   static const LOGIN = _Paths.LOGIN;
@@ -20,6 +22,7 @@ abstract class Routes {
   static const CATEGORY_LIST = _Paths.CATEGORY_LIST;
   static const LIST = _Paths.LIST;
   static const PRODUCT_DETAIL = _Paths.PRODUCT_DETAIL;
+  static const COMPANY_FORM = _Paths.COMPANY_FORM;
 }
 
 abstract class _Paths {
@@ -29,6 +32,7 @@ abstract class _Paths {
   static const CATEGORY_LIST = '/category-list';
   static const LIST = '/list';
   static const PRODUCT_DETAIL = '/product-detail';
+  static const COMPANY_FORM = '/company-form';
 }
 
 class AppPages {
@@ -71,6 +75,11 @@ class AppPages {
         // ProductDetailController is created with Get.put in the page itself
         // to ensure NavigationStackManager is already available
       }),
+    ),
+    GetPage(
+      name: _Paths.COMPANY_FORM,
+      page: () => const CompanyFormPage(),
+      binding: CompanyFormBinding(),
     ),
   ];
 }

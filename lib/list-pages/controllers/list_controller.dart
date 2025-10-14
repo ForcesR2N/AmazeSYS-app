@@ -200,9 +200,15 @@ class ListController extends GetxController {
     // Navigate to ProductDetailPage and pass product as argument
     final result = await Get.toNamed(Routes.PRODUCT_DETAIL, arguments: product);
     
-    // When returning from product detail, ensure we're showing detail view
-    if (result != null && result['showDetailFirst'] == true) {
-      isShowingDetail.value = true;
+    // Handle post-navigation actions
+    if (result != null) {
+      if (result is bool && result == true) {
+        // Data was modified, refresh the current view
+        await refresh();
+      } else if (result is Map && result['showDetailFirst'] == true) {
+        // Show detail view
+        isShowingDetail.value = true;
+      }
     }
   }
 
@@ -270,6 +276,17 @@ class ListController extends GetxController {
       // Refresh root items
       final level = currentItems.first.level;
       await loadRootItems(level);
+    }
+  }
+
+  /// Handle data modifications and refresh accordingly
+  Future<void> handleDataModification({bool itemDeleted = false}) async {
+    if (itemDeleted && selectedItem.value != null) {
+      // If current item was deleted, go back to parent level
+      await navigateBack();
+    } else {
+      // Otherwise just refresh current data
+      await refresh();
     }
   }
 

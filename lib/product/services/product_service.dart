@@ -46,4 +46,58 @@ class ProductService {
       rethrow;
     }
   }
+
+  /// Create a new product
+  Future<ProductDetail> createProduct(Map<String, dynamic> productData) async {
+    try {
+      final response = await _apiClient.post(
+        '/api/products/',
+        data: productData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusCreated && response.data != null) {
+        return ProductDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to create product: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating product: $e');
+      throw Exception('Failed to create product: $e');
+    }
+  }
+
+  /// Update an existing product
+  Future<ProductDetail> updateProduct(String productId, Map<String, dynamic> productData) async {
+    try {
+      final response = await _apiClient.put(
+        '/api/products/$productId',
+        data: productData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusOk && response.data != null) {
+        return ProductDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to update product: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating product: $e');
+      throw Exception('Failed to update product: $e');
+    }
+  }
+
+  /// Delete a product
+  Future<bool> deleteProduct(String productId) async {
+    try {
+      final response = await _apiClient.delete('/api/products/$productId');
+      
+      if (response.statusCode == ApiConstants.statusOk || response.statusCode == 204) {
+        return true;
+      } else {
+        throw Exception('Failed to delete product: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting product: $e');
+      throw Exception('Failed to delete product: $e');
+    }
+  }
 }

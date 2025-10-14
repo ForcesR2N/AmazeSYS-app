@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import '../models/company_detail_model.dart';
+import '../services/company_service.dart';
+import '../controllers/company_form_controller.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/crud_action_bar.dart';
+import '../../core/widgets/custom_snackbar.dart';
 import '../../list-pages/widgets/detail_widgets/base_detail_widget.dart';
+import '../../list-pages/controllers/list_controller.dart';
 
 class CompanyDetailWidget extends StatelessWidget {
   final CompanyDetail detail;
-  
+
   const CompanyDetailWidget({super.key, required this.detail});
 
   @override
@@ -16,9 +22,75 @@ class CompanyDetailWidget extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _buildDetailSections(),
+        children: [..._buildDetailSections(), _buildCrudActions()],
       ),
     );
+  }
+
+  Widget _buildCrudActions() {
+    return CrudActionBar(
+      entityName: 'Company',
+      itemName: detail.name,
+      onEdit: () => _handleEdit(),
+      onDelete: () => _handleDelete(),
+      showCreate: false, // Remove create button from detail view
+    );
+  }
+
+  void _handleEdit() async {
+    if (Get.isRegistered<CompanyFormController>()) {
+      Get.delete<CompanyFormController>();
+    }
+
+    final result = await Get.toNamed(
+      '/company-form',
+      arguments: {'company': detail},
+    );
+
+    // If company was updated successfully, show feedback and refresh
+    if (result == true) {
+      CustomSnackbar.success(
+        title: 'Company Updated',
+        message: 'Company information has been updated successfully',
+      );
+
+      // Refresh the current view to show updated data
+      try {
+        final listController = Get.find<ListController>();
+        await listController.refresh();
+      } catch (e) {
+        // List controller not found, that's okay
+      }
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    try {
+      final companyService = Get.find<CompanyService>();
+      final success = await companyService.deleteCompany(detail.id);
+
+      if (success) {
+        // Show success feedback
+        CustomSnackbar.success(
+          title: 'Company Deleted',
+          message: '${detail.name} has been deleted successfully',
+        );
+
+        // Handle post-delete navigation and refresh
+        try {
+          final listController = Get.find<ListController>();
+          await listController.handleDataModification(itemDeleted: true);
+        } catch (e) {
+          // If list controller not found, just go back
+          Get.back(result: true);
+        }
+      }
+    } catch (e) {
+      CustomSnackbar.error(
+        title: 'Delete Failed',
+        message: 'Failed to delete company: ${e.toString()}',
+      );
+    }
   }
 
   List<Widget> _buildDetailSections() {
@@ -32,13 +104,13 @@ class CompanyDetailWidget extends StatelessWidget {
           _buildInfoRow('Name', detail.name),
           _buildInfoRow('Code', detail.code),
           _buildInfoRow('Description', detail.description),
-          _buildInfoRow('Category', detail.categoryName ?? 'Not specified'),
+          _buildInfoRow('Category', detail.categoryId),
           if (detail.note?.isNotEmpty == true)
             _buildInfoRow('Notes', detail.note!),
         ],
       ),
 
-      // Address & Location Information  
+      // Address & Location Information
       if (_hasLocationInfo())
         _buildInfoSection(
           title: 'Address',
@@ -64,9 +136,7 @@ class CompanyDetailWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppTheme.success.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(
-                    color: AppTheme.success.withOpacity(0.3),
-                  ),
+                  border: Border.all(color: AppTheme.success.withOpacity(0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,7 +266,8 @@ class CompanyDetailWidget extends StatelessWidget {
           Text(
             value.isNotEmpty ? value : 'Not specified',
             style: AppTypography.bodyMedium.copyWith(
-              color: value.isNotEmpty ? AppTheme.neutral900 : AppTheme.neutral400,
+              color:
+                  value.isNotEmpty ? AppTheme.neutral900 : AppTheme.neutral400,
               height: 1.6,
             ),
           ),
@@ -207,16 +278,16 @@ class CompanyDetailWidget extends StatelessWidget {
 
   bool _hasLocationInfo() {
     return (detail.address?.isNotEmpty == true) ||
-           (detail.wardName?.isNotEmpty == true) ||
-           (detail.subdistrictName?.isNotEmpty == true) ||
-           (detail.districtName?.isNotEmpty == true) ||
-           (detail.provinceName?.isNotEmpty == true) ||
-           (detail.zipcode?.isNotEmpty == true);
+        (detail.wardName?.isNotEmpty == true) ||
+        (detail.subdistrictName?.isNotEmpty == true) ||
+        (detail.districtName?.isNotEmpty == true) ||
+        (detail.provinceName?.isNotEmpty == true) ||
+        (detail.zipcode?.isNotEmpty == true);
   }
 
   bool _hasContactInfo() {
-    return (detail.picName?.isNotEmpty == true) || 
-           (detail.picContact?.isNotEmpty == true);
+    return (detail.picName?.isNotEmpty == true) ||
+        (detail.picContact?.isNotEmpty == true);
   }
 
   String _formatDateTime(DateTime dateTime) {

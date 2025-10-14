@@ -4,6 +4,8 @@ import '../controllers/category_list_controller.dart';
 import '../models/list_item.dart';
 import '../widgets/skeleton_loader.dart';
 import '../../core/theme/app_theme.dart';
+import '../../company/controllers/company_form_controller.dart';
+import '../../core/widgets/custom_snackbar.dart';
 
 class CategoryListPage extends StatelessWidget {
   const CategoryListPage({super.key});
@@ -29,6 +31,7 @@ class CategoryListPage extends StatelessWidget {
           ],
         ),
       ),
+      floatingActionButton: _buildFloatingActionButton(controller),
     );
   }
 
@@ -300,6 +303,48 @@ class CategoryListPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildFloatingActionButton(CategoryListController controller) {
+    return Obx(() {
+      // Only show FAB when not loading and for company level
+      if (controller.isLoading.value || controller.currentLevel != ListLevel.company) {
+        return const SizedBox.shrink();
+      }
+
+      return FloatingActionButton.extended(
+        onPressed: () => _handleCreateNew(controller),
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 8,
+        icon: const Icon(Icons.add, size: 24),
+        label: Text(
+          'New ${controller.currentLevel.displayName}',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    });
+  }
+
+  Future<void> _handleCreateNew(CategoryListController controller) async {
+    // Clean up any existing form controller
+    if (Get.isRegistered<CompanyFormController>()) {
+      Get.delete<CompanyFormController>();
+    }
+    
+    final result = await Get.toNamed('/company-form');
+    
+    // If company was created successfully, show feedback and refresh the list
+    if (result == true) {
+      CustomSnackbar.success(
+        title: '${controller.currentLevel.displayName} Created',
+        message: 'New ${controller.currentLevel.displayName.toLowerCase()} has been added successfully',
+      );
+      await controller.refreshItems();
+    }
   }
 }
 

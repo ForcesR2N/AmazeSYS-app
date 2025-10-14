@@ -46,4 +46,58 @@ class BranchService {
       rethrow;
     }
   }
+
+  /// Create a new branch
+  Future<BranchDetail> createBranch(Map<String, dynamic> branchData) async {
+    try {
+      final response = await _apiClient.post(
+        '/api/branches/',
+        data: branchData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusCreated && response.data != null) {
+        return BranchDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to create branch: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating branch: $e');
+      throw Exception('Failed to create branch: $e');
+    }
+  }
+
+  /// Update an existing branch
+  Future<BranchDetail> updateBranch(String branchId, Map<String, dynamic> branchData) async {
+    try {
+      final response = await _apiClient.put(
+        '/api/branches/$branchId',
+        data: branchData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusOk && response.data != null) {
+        return BranchDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to update branch: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating branch: $e');
+      throw Exception('Failed to update branch: $e');
+    }
+  }
+
+  /// Delete a branch
+  Future<bool> deleteBranch(String branchId) async {
+    try {
+      final response = await _apiClient.delete('/api/branches/$branchId');
+      
+      if (response.statusCode == ApiConstants.statusOk || response.statusCode == 204) {
+        return true;
+      } else {
+        throw Exception('Failed to delete branch: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting branch: $e');
+      throw Exception('Failed to delete branch: $e');
+    }
+  }
 }

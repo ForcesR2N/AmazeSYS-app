@@ -46,4 +46,58 @@ class WarehouseService {
       rethrow;
     }
   }
+
+  /// Create a new warehouse
+  Future<WarehouseDetail> createWarehouse(Map<String, dynamic> warehouseData) async {
+    try {
+      final response = await _apiClient.post(
+        '/api/warehouses/',
+        data: warehouseData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusCreated && response.data != null) {
+        return WarehouseDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to create warehouse: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating warehouse: $e');
+      throw Exception('Failed to create warehouse: $e');
+    }
+  }
+
+  /// Update an existing warehouse
+  Future<WarehouseDetail> updateWarehouse(String warehouseId, Map<String, dynamic> warehouseData) async {
+    try {
+      final response = await _apiClient.put(
+        '/api/warehouses/$warehouseId',
+        data: warehouseData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusOk && response.data != null) {
+        return WarehouseDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to update warehouse: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating warehouse: $e');
+      throw Exception('Failed to update warehouse: $e');
+    }
+  }
+
+  /// Delete a warehouse
+  Future<bool> deleteWarehouse(String warehouseId) async {
+    try {
+      final response = await _apiClient.delete('/api/warehouses/$warehouseId');
+      
+      if (response.statusCode == ApiConstants.statusOk || response.statusCode == 204) {
+        return true;
+      } else {
+        throw Exception('Failed to delete warehouse: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting warehouse: $e');
+      throw Exception('Failed to delete warehouse: $e');
+    }
+  }
 }

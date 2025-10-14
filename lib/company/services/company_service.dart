@@ -72,4 +72,58 @@ class CompanyService {
       return [];
     }
   }
+
+  /// Create a new company
+  Future<CompanyDetail> createCompany(Map<String, dynamic> companyData) async {
+    try {
+      final response = await _apiClient.post(
+        '/api/companies/',
+        data: companyData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusCreated && response.data != null) {
+        return CompanyDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to create company: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error creating company: $e');
+      throw Exception('Failed to create company: $e');
+    }
+  }
+
+  /// Update an existing company
+  Future<CompanyDetail> updateCompany(String companyId, Map<String, dynamic> companyData) async {
+    try {
+      final response = await _apiClient.put(
+        '/api/companies/$companyId',
+        data: companyData,
+      );
+      
+      if (response.statusCode == ApiConstants.statusOk && response.data != null) {
+        return CompanyDetail.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to update company: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error updating company: $e');
+      throw Exception('Failed to update company: $e');
+    }
+  }
+
+  /// Delete a company
+  Future<bool> deleteCompany(String companyId) async {
+    try {
+      final response = await _apiClient.delete('/api/companies/$companyId');
+      
+      if (response.statusCode == ApiConstants.statusOk || response.statusCode == 204) {
+        return true;
+      } else {
+        throw Exception('Failed to delete company: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error deleting company: $e');
+      throw Exception('Failed to delete company: $e');
+    }
+  }
 }
