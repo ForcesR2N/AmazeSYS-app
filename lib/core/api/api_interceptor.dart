@@ -20,6 +20,11 @@ class ApiInterceptor extends Interceptor {
   ) async {
     // Auto-attach access token to all requests except auth endpoints
     if (!_isAuthEndpoint(options.path)) {
+      // Check if token needs refresh before making the request
+      if (_tokenStorage.shouldRefreshToken()) {
+        await _handleTokenRefresh();
+      }
+      
       final accessToken = await _tokenStorage.getAccessToken();
       if (accessToken != null) {
         options.headers[ApiConstants.authorizationKey] = 
@@ -88,12 +93,14 @@ class ApiInterceptor extends Interceptor {
       );
 
       if (response.statusCode == ApiConstants.statusOk && response.data != null) {
-        final newAccessToken = response.data['access_token'] as String?;
-        final newRefreshToken = response.data['refresh_token'] as String?;
+        final data = response.data as Map<String, dynamic>;
+        final newAccessToken = data['access_token'] as String?;
+        final newRefreshToken = data['refresh_token'] as String?;
+        final tokenType = data['token_type'] as String?; // Should be "bearer"
 
         if (newAccessToken != null) {
-          // Update access token
-          await _tokenStorage.updateAccessToken(newAccessToken);
+          // Update access token with 3600 second expiration (from backend)
+          await _tokenStorage.updateAccessToken(newAccessToken, expiresInSeconds: 3600);
           
           // Update refresh token if provided
           if (newRefreshToken != null) {
@@ -101,6 +108,7 @@ class ApiInterceptor extends Interceptor {
               accessToken: newAccessToken,
               refreshToken: newRefreshToken,
               rememberMe: _tokenStorage.rememberMe,
+              expiresInSeconds: 3600, // Backend sets 3600 seconds
             );
           }
 

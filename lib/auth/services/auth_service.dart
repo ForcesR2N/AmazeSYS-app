@@ -32,11 +32,12 @@ class AuthService {
         final refreshToken = data['refresh_token'] as String?;
         
         if (accessToken != null && refreshToken != null) {
-          // Save tokens (assuming remember me is false by default)
+          // Save tokens with 3600 second expiration (from backend)
           await _tokenStorage.saveTokens(
             accessToken: accessToken,
             refreshToken: refreshToken,
             rememberMe: false,
+            expiresInSeconds: 3600, // Backend sets 3600 seconds
           );
 
           // Fetch user info
@@ -76,11 +77,12 @@ class AuthService {
         final refreshToken = data['refresh_token'] as String?;
         
         if (accessToken != null && refreshToken != null) {
-          // Save tokens with remember me preference
+          // Save tokens with remember me preference and 3600 second expiration
           await _tokenStorage.saveTokens(
             accessToken: accessToken,
             refreshToken: refreshToken,
             rememberMe: rememberMe,
+            expiresInSeconds: 3600, // Backend sets 3600 seconds
           );
 
           // Fetch user info
@@ -155,11 +157,25 @@ class AuthService {
       }
 
       // Try to fetch current user info
-      return await _fetchUserInfo();
+      final user = await _fetchUserInfo();
+      return user;
     } catch (e) {
-      // If fetching fails, clear tokens and return null
-      await _tokenStorage.clearTokens();
-      return null;
+      // If fetching fails, try to refresh tokens first before giving up
+      final refreshSuccess = await refreshTokens();
+      if (refreshSuccess) {
+        try {
+          // Try fetching user info again with refreshed token
+          return await _fetchUserInfo();
+        } catch (retryError) {
+          // If still fails after refresh, clear tokens
+          await _tokenStorage.clearTokens();
+          return null;
+        }
+      } else {
+        // Refresh failed, clear tokens and return null
+        await _tokenStorage.clearTokens();
+        return null;
+      }
     }
   }
 
@@ -183,7 +199,7 @@ class AuthService {
         final newRefreshToken = data['refresh_token'] as String?;
 
         if (newAccessToken != null) {
-          await _tokenStorage.updateAccessToken(newAccessToken);
+          await _tokenStorage.updateAccessToken(newAccessToken, expiresInSeconds: 3600);
           
           // Update refresh token if provided
           if (newRefreshToken != null) {
@@ -191,6 +207,7 @@ class AuthService {
               accessToken: newAccessToken,
               refreshToken: newRefreshToken,
               rememberMe: _tokenStorage.rememberMe,
+              expiresInSeconds: 3600, // Backend sets 3600 seconds
             );
           }
 
