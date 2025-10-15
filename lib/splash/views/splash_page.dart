@@ -8,11 +8,9 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(
-        0xFF1E3A8A,
-      ), // Blue background matching animation
-      body: const SplashScreenContent(),
+    return const Scaffold(
+      backgroundColor: Color(0xFF2847BA), // Try this color first
+      body: SplashScreenContent(),
     );
   }
 }
@@ -43,19 +41,16 @@ class _SplashScreenContentState extends State<SplashScreenContent>
   }
 
   void _initializeAnimations() {
-    // Fade animation
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
-    // Scale animation
     _scaleController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
 
-    // Lottie controller - will be set when animation loads
     _lottieController = AnimationController(vsync: this);
 
     _fadeAnimation = Tween<double>(
@@ -88,13 +83,8 @@ class _SplashScreenContentState extends State<SplashScreenContent>
       'SplashScreen: Lottie animation loaded - Duration: ${composition.duration}',
     );
 
-    // Set the controller duration to match the composition
     _lottieController.duration = composition.duration;
-
-    // Start the animation
     _lottieController.forward();
-
-    // Listen for completion
     _lottieController.addStatusListener(_onAnimationStatus);
   }
 
@@ -115,7 +105,6 @@ class _SplashScreenContentState extends State<SplashScreenContent>
       print('SplashScreen: Notified controller of completion');
     } catch (e) {
       print('SplashScreen: Error notifying controller: $e');
-      // Fallback: navigate after a delay
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           try {
@@ -139,8 +128,6 @@ class _SplashScreenContentState extends State<SplashScreenContent>
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return AnimatedBuilder(
       animation: Listenable.merge([_fadeAnimation, _scaleAnimation]),
       builder: (context, child) {
@@ -148,32 +135,29 @@ class _SplashScreenContentState extends State<SplashScreenContent>
           opacity: _fadeAnimation.value,
           child: Transform.scale(
             scale: _scaleAnimation.value,
-            child: Center(
-              child: SizedBox.expand(
-                child: Lottie.asset(
-                  'asset/animation-splash-screen.json',
-                  controller: _lottieController,
-                  fit: BoxFit.cover,
-                  repeat: false,
-                  animate: true,
-                  onLoaded: _onLottieAnimationLoaded,
-                  errorBuilder: (context, error, stackTrace) {
-                    print('SplashScreen: Lottie error: $error');
+            alignment: Alignment.center,
+            child: SizedBox.expand(
+              child: Lottie.asset(
+                'asset/animation-splash-screen.json',
+                controller: _lottieController,
+                fit: BoxFit.cover, // ← Changed from cover to fill = NO SPACE
+                repeat: false,
+                animate: true,
+                onLoaded: _onLottieAnimationLoaded,
+                errorBuilder: (context, error, stackTrace) {
+                  print('SplashScreen: Lottie error: $error');
 
-                    // Trigger completion even on error
-                    if (!_animationCompleted) {
-                      Future.delayed(const Duration(milliseconds: 1500), () {
-                        if (mounted && !_animationCompleted) {
-                          _animationCompleted = true;
-                          _notifyControllerAnimationComplete();
-                        }
-                      });
-                    }
+                  if (!_animationCompleted) {
+                    Future.delayed(const Duration(milliseconds: 1500), () {
+                      if (mounted && !_animationCompleted) {
+                        _animationCompleted = true;
+                        _notifyControllerAnimationComplete();
+                      }
+                    });
+                  }
 
-                    // Show fallback UI
-                    return _buildFallbackIcon(context);
-                  },
-                ),
+                  return _buildFallbackIcon(context);
+                },
               ),
             ),
           ),
