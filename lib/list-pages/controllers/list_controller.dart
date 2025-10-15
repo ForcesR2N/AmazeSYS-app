@@ -26,7 +26,8 @@ class ListController extends GetxController {
   final RxList<ListItem> childItems = <ListItem>[].obs;
   final Rxn<ListItem> selectedItem = Rxn<ListItem>();
 
-  final NavigationStackManager _navigationManager = Get.find<NavigationStackManager>();
+  final NavigationStackManager _navigationManager =
+      Get.find<NavigationStackManager>();
 
   // Detail data
   final Rxn<dynamic> selectedDetail = Rxn<dynamic>();
@@ -44,7 +45,8 @@ class ListController extends GetxController {
   // Computed getters
   List<ListItem> get displayItems =>
       selectedItem.value != null ? childItems : currentItems;
-  ListLevel? get currentLevel => _navigationManager.currentLevel ?? 
+  ListLevel? get currentLevel =>
+      _navigationManager.currentLevel ??
       (currentItems.isNotEmpty ? currentItems.first.level : null);
 
   /// Load root level items (e.g., all companies)
@@ -96,11 +98,11 @@ class ListController extends GetxController {
 
       final List<Future> futures = [];
       final nextLevel = parentItem.level.nextLevel;
-      
+
       if (nextLevel != null) {
         futures.add(_listService.getChildrenByLevel(parentItem.id, nextLevel));
       }
-      
+
       futures.add(_fetchDetailByLevel(parentItem.id, parentItem.level));
       futures.add(Future.delayed(const Duration(milliseconds: 600)));
 
@@ -120,7 +122,7 @@ class ListController extends GetxController {
             if (results.length > 1) {
               selectedDetail.value = results[results.length - 2];
             }
-            
+
             if (addToStack) {
               _navigationManager.pushPage(
                 selectedItem: selectedItem.value,
@@ -133,7 +135,8 @@ class ListController extends GetxController {
             }
           });
 
-      isShowingDetail.value = true; // Always show detail view first, user can toggle to list
+      isShowingDetail.value =
+          true; // Always show detail view first, user can toggle to list
     } catch (e) {
       errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
       childItems.clear();
@@ -165,18 +168,8 @@ class ListController extends GetxController {
 
       // Set the detail regardless of whether it's null or not
       selectedDetail.value = detail;
-
-      if (detail != null) {
-        print('✅ Company detail loaded successfully: ${detail.toString()}');
-      } else {
-        print(
-          '⚠️ Company detail is null - will show "no data available" screen',
-        );
-      }
     } catch (e) {
-      print('💥 Exception during detail loading: $e');
-      // Don't set error state, just keep the detail tab available
-      // The UI will show "no data available" if selectedDetail is null
+      print('Exception during detail loading: $e');
     } finally {
       isLoadingDetail.value = false;
     }
@@ -199,7 +192,7 @@ class ListController extends GetxController {
   Future<void> navigateToProductDetail(ListItem product) async {
     // Navigate to ProductDetailPage and pass product as argument
     final result = await Get.toNamed(Routes.PRODUCT_DETAIL, arguments: product);
-    
+
     // Handle post-navigation actions
     if (result != null) {
       if (result is bool && result == true) {
@@ -215,10 +208,10 @@ class ListController extends GetxController {
   Future<void> navigateBack() async {
     if (_navigationManager.canGoBack()) {
       final poppedPage = _navigationManager.popPage();
-      
+
       if (poppedPage != null) {
         isLoading.value = true;
-        
+
         try {
           if (poppedPage.isStale) {
             await _restoreStalePageState(poppedPage);
@@ -248,7 +241,7 @@ class ListController extends GetxController {
     detailError.value = null;
     errorMessage.value = null;
     _navigationManager.clear();
-    
+
     // Auto-select the first item if available
     if (currentItems.isNotEmpty) {
       selectedItem.value = currentItems.first;
@@ -296,16 +289,17 @@ class ListController extends GetxController {
     currentItems.value = pageState.currentItems;
     childItems.value = pageState.childItems;
     selectedDetail.value = pageState.selectedDetail;
-    isShowingDetail.value = true; // Always show detail first regardless of previous state
+    isShowingDetail.value =
+        true; // Always show detail first regardless of previous state
     errorMessage.value = null;
     detailError.value = null;
   }
-  
+
   /// Restore stale page state with complete data refresh
   Future<void> _restoreStalePageState(PageState pageState) async {
     errorMessage.value = null;
     detailError.value = null;
-    
+
     if (pageState.selectedItem != null) {
       // Scenario: User was viewing children of selectedItem
       // Need to restore: currentItems + childItems + selectedDetail
@@ -316,34 +310,38 @@ class ListController extends GetxController {
       await _restoreRootLevel(pageState.level);
     }
   }
-  
+
   /// Restore hierarchical level with complete data
   Future<void> _restoreHierarchicalLevel(PageState pageState) async {
     final selectedItemData = pageState.selectedItem!;
     selectedItem.value = selectedItemData;
-    
+
     // Create futures for parallel loading
     final List<Future> futures = [];
-    
+
     // 1. Fetch currentItems (parent level items that contain selectedItem)
     final parentLevel = _getParentLevel(selectedItemData.level);
     if (parentLevel != null) {
       // Find the parent container for selectedItem
       futures.add(_fetchParentLevelItems(selectedItemData, parentLevel));
     }
-    
+
     // 2. Fetch childItems (children of selectedItem)
     final nextLevel = selectedItemData.level.nextLevel;
     if (nextLevel != null) {
-      futures.add(_listService.getChildrenByLevel(selectedItemData.id, nextLevel));
+      futures.add(
+        _listService.getChildrenByLevel(selectedItemData.id, nextLevel),
+      );
     }
-    
+
     // 3. Fetch selectedDetail (detail of selectedItem)
-    futures.add(_fetchDetailByLevel(selectedItemData.id, selectedItemData.level));
-    
+    futures.add(
+      _fetchDetailByLevel(selectedItemData.id, selectedItemData.level),
+    );
+
     // 4. Add minimum loading time
     futures.add(Future.delayed(const Duration(milliseconds: 600)));
-    
+
     try {
       final results = await Future.wait(futures).timeout(
         const Duration(seconds: 15),
@@ -351,16 +349,16 @@ class ListController extends GetxController {
           throw Exception('Loading timeout after 15 seconds');
         },
       );
-      
+
       int resultIndex = 0;
-      
+
       // Process parent level items
       if (parentLevel != null) {
         final parentItems = results[resultIndex] as List<ListItem>;
         currentItems.value = parentItems;
         resultIndex++;
       }
-      
+
       // Process child items
       if (nextLevel != null) {
         final children = results[resultIndex] as List<ListItem>;
@@ -369,30 +367,29 @@ class ListController extends GetxController {
       } else {
         childItems.clear();
       }
-      
+
       // Process selected detail
       selectedDetail.value = results[resultIndex];
-      
+
       // Restore UI state - always show detail first
       isShowingDetail.value = true;
-      
     } catch (e) {
       errorMessage.value = NetworkHelper.getUserFriendlyErrorMessage(e);
       print('Error restoring stale page state: $e');
     }
   }
-  
+
   /// Restore root level items
   Future<void> _restoreRootLevel(ListLevel level) async {
     selectedItem.value = null;
     selectedDetail.value = null;
     childItems.clear();
     isShowingDetail.value = true;
-    
+
     try {
       final loadingFuture = _listService.getItemsByLevel(level);
       final minimumDelay = Future.delayed(const Duration(milliseconds: 600));
-      
+
       await Future.wait([loadingFuture, minimumDelay]).then((results) {
         final items = results[0] as List<ListItem>;
         currentItems.value = items;
@@ -408,18 +405,24 @@ class ListController extends GetxController {
       print('Error restoring root level: $e');
     }
   }
-  
+
   /// Fetch parent level items that contain the given item
-  Future<List<ListItem>> _fetchParentLevelItems(ListItem childItem, ListLevel parentLevel) async {
+  Future<List<ListItem>> _fetchParentLevelItems(
+    ListItem childItem,
+    ListLevel parentLevel,
+  ) async {
     // If we know the parentId, we can fetch siblings directly
     if (childItem.parentId != null) {
-      return await _listService.getChildrenByLevel(childItem.parentId!, childItem.level);
+      return await _listService.getChildrenByLevel(
+        childItem.parentId!,
+        childItem.level,
+      );
     }
-    
+
     // Fallback: fetch all items at parent level (less efficient but works)
     return await _listService.getItemsByLevel(parentLevel);
   }
-  
+
   /// Get parent level for hierarchical navigation
   ListLevel? _getParentLevel(ListLevel currentLevel) {
     switch (currentLevel) {
@@ -433,7 +436,7 @@ class ListController extends GetxController {
         return null; // Company is root level
     }
   }
-  
+
   /// Fetch full detail based on level
   Future<dynamic> _fetchDetailByLevel(String id, ListLevel level) async {
     switch (level) {

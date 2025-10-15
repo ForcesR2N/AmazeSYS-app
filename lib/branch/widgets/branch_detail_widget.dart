@@ -34,6 +34,7 @@ class BranchDetailWidget extends StatelessWidget {
           _buildInfoRow('Description', detail.description),
           if (detail.note?.isNotEmpty == true)
             _buildInfoRow('Notes', detail.note!),
+          _buildInfoRow('Street Address', detail.fullAddress),
         ],
       ),
 
@@ -56,61 +57,6 @@ class BranchDetailWidget extends StatelessWidget {
               _buildInfoRow('Person in Charge', detail.picName!),
             if (detail.picContact?.isNotEmpty == true)
               _buildInfoRow('Contact Number', detail.picContact!),
-          ],
-        ),
-
-      // Address Information
-      if (_hasLocationInfo())
-        _buildInfoSection(
-          title: 'Address',
-          icon: Icons.location_on_outlined,
-          color: AppTheme.warning,
-          children: [
-            // Street Address (just address field)
-            _buildInfoRow('Street Address', detail.streetAddress),
-
-            // Full Address (complete with all location details)
-            Container(
-              margin: const EdgeInsets.only(top: AppSpacing.sm),
-              padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppTheme.warning.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppTheme.warning.withOpacity(0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.map_outlined,
-                        size: 16,
-                        color: AppTheme.warning,
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        'Full Address',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppTheme.warning,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    detail.fullAddress.isNotEmpty
-                        ? detail.fullAddress
-                        : 'No address details available',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppTheme.neutral800,
-                      height: 1.6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
 
