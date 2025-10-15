@@ -139,7 +139,6 @@ class SkeletonLoader {
     );
   }
 
-  // New: Skeleton for dashboard stats cards
   static Widget statCardSkeleton() {
     return Container(
       padding: const EdgeInsets.all(20),

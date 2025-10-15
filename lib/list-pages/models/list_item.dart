@@ -65,14 +65,15 @@ class ListItem {
 
   factory ListItem.fromJson(Map<String, dynamic> json) {
     return ListItem(
-      id: json['id'],
-      name: json['name'],
-      code: json['code'],
-      description: json['description'],
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      code: json['code_id']?.toString() ?? json['code']?.toString() ?? '', // API uses 'code_id'
+      description: json['description']?.toString() ?? '',
       level: ListLevel.values.firstWhere(
         (e) => e.name == json['level'],
+        orElse: () => ListLevel.company,
       ),
-      parentId: json['parentId'],
+      parentId: json['parentId']?.toString(),
     );
   }
 
@@ -80,7 +81,7 @@ class ListItem {
     return {
       'id': id,
       'name': name,
-      'code': code,
+      'code_id': code,
       'description': description,
       'level': level.name,
       'parentId': parentId,

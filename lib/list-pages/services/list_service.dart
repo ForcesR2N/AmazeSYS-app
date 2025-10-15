@@ -139,10 +139,10 @@ class ListService {
   /// Map API response to ListItem
   ListItem _mapToListItem(Map<String, dynamic> json, ListLevel level) {
     return ListItem(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      code: json['code'] as String? ?? '',
-      description: json['description'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      code: json['code_id']?.toString() ?? json['code']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
       level: level,
       parentId: _getParentId(json, level),
     );

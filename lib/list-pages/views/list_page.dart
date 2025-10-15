@@ -60,8 +60,8 @@ class ListPage extends StatelessWidget {
           }
           return const SizedBox.shrink();
         }),
-      ), // Close Scaffold
-    ); // Close WillPopScope
+      ),
+    );
   }
 
   Widget _buildAppBar(ListController controller) {
@@ -118,18 +118,6 @@ class ListPage extends StatelessWidget {
         );
       }),
     );
-  }
-
-  String _getBreadcrumbText(ListController controller) {
-    final selectedItem = controller.selectedItem.value;
-    final currentLevel = controller.currentLevel;
-
-    if (selectedItem != null && currentLevel != null) {
-      return currentLevel.displayName;
-    } else if (controller.currentItems.isNotEmpty) {
-      return controller.currentItems.first.level.displayName;
-    }
-    return 'Items';
   }
 
   Widget _buildHeaderSection(
@@ -206,8 +194,9 @@ class ListPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Name
                   Text(
-                    selectedItem.displayName,
+                    selectedItem.name,
                     style: AppTypography.h4.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -215,7 +204,43 @@ class ListPage extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 6),
+                  // Code ID badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.tag,
+                          size: 14,
+                          color: Colors.white.withOpacity(0.95),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          selectedItem.code,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: Colors.white.withOpacity(0.95),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: AppSpacing.xs),
+                  // Description
                   Text(
                     selectedItem.description,
                     style: AppTypography.bodyMedium.copyWith(
@@ -536,8 +561,9 @@ class ListPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Name
                       Text(
-                        item.displayName,
+                        item.name,
                         style: AppTypography.labelLarge.copyWith(
                           color: AppTheme.neutral900,
                           fontWeight: FontWeight.w600,
@@ -545,7 +571,47 @@ class ListPage extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: AppSpacing.xs),
+                      const SizedBox(height: 4),
+                      // Code ID with badge
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _getColorForLevel(item.level).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: _getColorForLevel(item.level).withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.tag,
+                                  size: 12,
+                                  color: _getColorForLevel(item.level),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  item.code,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: _getColorForLevel(item.level),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Description
                       Text(
                         item.description,
                         style: AppTypography.bodyMedium.copyWith(
@@ -670,48 +736,6 @@ class ListPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNoDetailState() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppTheme.neutral100,
-                borderRadius: BorderRadius.circular(AppRadius.full),
-              ),
-              child: const Icon(
-                Icons.info_outline,
-                size: 40,
-                color: AppTheme.neutral400,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'No Detail Available',
-              style: AppTypography.h3.copyWith(
-                color: AppTheme.neutral700,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Detail information is not available',
-              style: AppTypography.bodyLarge.copyWith(
-                color: AppTheme.neutral500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildDetailWidgetForLevel(dynamic detail) {
     if (detail is CompanyDetail) {
       return CompanyDetailWidget(detail: detail);
@@ -724,39 +748,6 @@ class ListPage extends StatelessWidget {
     }
 
     return _buildGenericDetailWidget(detail);
-  }
-
-  Widget _buildPlaceholderDetailWidget(String type, String name) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppTheme.infoLight,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: AppTheme.info.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outlined, color: AppTheme.info, size: 20),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    '$type detail widget will be implemented soon for $name',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppTheme.info,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildNoDataAvailableWidget() {

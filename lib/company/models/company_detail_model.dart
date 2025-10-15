@@ -55,7 +55,7 @@ class CompanyDetail {
       return CompanyDetail(
         id: json['id']?.toString() ?? '',
         name: json['name']?.toString() ?? '',
-        code: json['code_id']?.toString() ?? json['code']?.toString() ?? '', // API uses 'code_id'
+        code: json['code_id']?.toString() ?? json['code']?.toString() ?? '',
         description: json['description']?.toString() ?? '',
         categoryId: json['category_id']?.toString() ?? '',
         categoryName: json['category_name']?.toString(),
