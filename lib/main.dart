@@ -4,19 +4,21 @@ import 'routes/app_pages.dart';
 import 'auth/controllers/auth_controller.dart';
 import 'core/services/navigation_stack_manager.dart';
 import 'company/services/company_service.dart';
+import 'core/storage/token_storage.dart';
+import 'core/api/api_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+  await TokenStorage.instance.initialize();
+  ApiClient.instance.initialize();
+
   // Initialize services
   await Get.putAsync(() async => NavigationStackManager());
-  
-  // Initialize AuthController globally for auto-login functionality
   Get.put(AuthController(), permanent: true);
-  
+
   // Initialize entity services globally
   Get.put(CompanyService(), permanent: true);
-  
+
   runApp(MyApp());
 }
 

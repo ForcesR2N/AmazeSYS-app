@@ -9,9 +9,7 @@ class TokenStorage {
 
   // Secure storage for sensitive data (refresh token)
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
@@ -47,7 +45,9 @@ class TokenStorage {
 
       // Calculate expiration time - default to 3600 seconds (1 hour) if not provided
       final expirationSeconds = expiresInSeconds ?? 3600;
-      _tokenExpiresAt = DateTime.now().add(Duration(seconds: expirationSeconds));
+      _tokenExpiresAt = DateTime.now().add(
+        Duration(seconds: expirationSeconds),
+      );
 
       // Save to memory for quick access
       _accessToken = accessToken;
@@ -59,16 +59,13 @@ class TokenStorage {
         key: ApiConstants.refreshTokenKey,
         value: refreshToken,
       );
-
       // Save expiration time
       await _localStorage.write(
-        'token_expires_at', 
+        'token_expires_at',
         _tokenExpiresAt!.millisecondsSinceEpoch,
       );
-
-      // Always save access token for session persistence 
-      // RememberMe only affects if it survives app uninstall/data clear
       await _localStorage.write(ApiConstants.accessTokenKey, accessToken);
+
       await _localStorage.write(ApiConstants.rememberMeKey, rememberMe);
     } catch (e) {
       throw Exception('Failed to save tokens: $e');
@@ -92,12 +89,17 @@ class TokenStorage {
       return _refreshToken;
     }
 
-    _refreshToken = await _secureStorage.read(key: ApiConstants.refreshTokenKey);
+    _refreshToken = await _secureStorage.read(
+      key: ApiConstants.refreshTokenKey,
+    );
     return _refreshToken;
   }
 
   // Update access token after refresh
-  Future<void> updateAccessToken(String newAccessToken, {int? expiresInSeconds}) async {
+  Future<void> updateAccessToken(
+    String newAccessToken, {
+    int? expiresInSeconds,
+  }) async {
     if (newAccessToken.isEmpty) {
       throw Exception('Invalid access token provided');
     }
@@ -110,7 +112,7 @@ class TokenStorage {
 
     // Save expiration time
     await _localStorage.write(
-      'token_expires_at', 
+      'token_expires_at',
       _tokenExpiresAt!.millisecondsSinceEpoch,
     );
 
@@ -148,13 +150,22 @@ class TokenStorage {
   // Check if access token is expired or will expire soon (within 5 minutes)
   bool isTokenExpired({int bufferMinutes = 5}) {
     if (_tokenExpiresAt == null) {
-      // If no expiration data and we have tokens, try to use them
-      // The API will return 401 if they're actually expired
-      return false;
+      // If no expiration data, check if we have tokens at all
+      // If we have tokens but no expiration, assume they might still be valid
+      return _accessToken == null && _refreshToken == null;
     }
-    
+
     final bufferTime = DateTime.now().add(Duration(minutes: bufferMinutes));
-    return _tokenExpiresAt!.isBefore(bufferTime);
+    final isExpired = _tokenExpiresAt!.isBefore(bufferTime);
+
+    // Debug logging
+    if (isExpired) {
+      print(
+        'TokenStorage: Token expired or will expire soon. Expires at: $_tokenExpiresAt, Buffer time: $bufferTime',
+      );
+    }
+
+    return isExpired;
   }
 
   // Check if token needs refresh (expires within 10 minutes)
@@ -165,29 +176,31 @@ class TokenStorage {
   // Get time until token expires (in minutes)
   int? getMinutesUntilExpiration() {
     if (_tokenExpiresAt == null) return null;
-    
+
     final now = DateTime.now();
     if (_tokenExpiresAt!.isBefore(now)) return 0;
-    
+
     return _tokenExpiresAt!.difference(now).inMinutes;
   }
 
   // Load tokens from storage on app start
   Future<void> _loadTokensFromStorage() async {
     try {
-      _refreshToken = await _secureStorage.read(key: ApiConstants.refreshTokenKey);
+      _refreshToken = await _secureStorage.read(
+        key: ApiConstants.refreshTokenKey,
+      );
       _rememberMe = _localStorage.read(ApiConstants.rememberMeKey) ?? false;
-
       // Load expiration time
       final expirationMs = _localStorage.read('token_expires_at');
       if (expirationMs != null) {
         _tokenExpiresAt = DateTime.fromMillisecondsSinceEpoch(expirationMs);
+      } else {
+        print('TokenStorage: No expiration time found');
       }
 
       // Always load access token for session persistence
       _accessToken = _localStorage.read(ApiConstants.accessTokenKey);
     } catch (e) {
-      // If loading fails, clear everything to ensure clean state
       await clearTokens();
     }
   }

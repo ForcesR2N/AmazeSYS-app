@@ -27,36 +27,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  final RxList<Map<String, dynamic>> menuItems = <Map<String, dynamic>>[
-    {
-      'name': 'Companies',
-      'level': 'company',
-      'icon': Icons.business_outlined,
-      'count': '...',
-      'color': AppTheme.primary,
-    },
-    {
-      'name': 'Branches',
-      'level': 'branch',
-      'icon': Icons.store_outlined,
-      'count': '...',
-      'color': AppTheme.success,
-    },
-    {
-      'name': 'Warehouses',
-      'level': 'warehouse',
-      'icon': Icons.warehouse_outlined,
-      'count': '...',
-      'color': AppTheme.warning,
-    },
-    {
-      'name': 'Products',
-      'level': 'product',
-      'icon': Icons.inventory_2_outlined,
-      'count': '...',
-      'color': Color(0xFF8B5CF6),
-    },
-  ].obs;
+  final RxList<Map<String, dynamic>> menuItems =
+      <Map<String, dynamic>>[
+        {
+          'name': 'Companies',
+          'level': 'company',
+          'icon': Icons.business_outlined,
+          'count': '...',
+          'color': AppTheme.primary,
+        },
+        {
+          'name': 'Branches',
+          'level': 'branch',
+          'icon': Icons.store_outlined,
+          'count': '...',
+          'color': AppTheme.success,
+        },
+        {
+          'name': 'Warehouses',
+          'level': 'warehouse',
+          'icon': Icons.warehouse_outlined,
+          'count': '...',
+          'color': AppTheme.warning,
+        },
+        {
+          'name': 'Products',
+          'level': 'product',
+          'icon': Icons.inventory_2_outlined,
+          'count': '...',
+          'color': Color(0xFF8B5CF6),
+        },
+      ].obs;
 
   @override
   void initState() {
@@ -109,10 +110,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final item = menuItems[i];
         final levelString = item['level'] as String;
         final level = ListLevel.values.firstWhere((e) => e.name == levelString);
-        
+
         final items = await _listService.getItemsByLevel(level);
         final count = items.length;
-        
+
         // Update count with proper formatting
         String formattedCount;
         if (count >= 1000) {
@@ -120,12 +121,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         } else {
           formattedCount = count.toString();
         }
-        
+
         // Update the menu item
-        menuItems[i] = {
-          ...item,
-          'count': formattedCount,
-        };
+        menuItems[i] = {...item, 'count': formattedCount};
       }
     } catch (e) {
       print('Error loading counts: $e');
@@ -161,11 +159,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           position: _slideAnimation,
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildAppBar(),
-              _buildQuickStats(),
-              _buildModulesSection(),
-            ],
+            slivers: [_buildAppBar(), _buildModulesSection()],
           ),
         ),
       ),
@@ -229,8 +223,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   backgroundColor: AppTheme.primarySurface,
                   child: Text(
                     (authController.currentUser?.name?.isNotEmpty == true
-                        ? authController.currentUser!.name!.substring(0, 1)
-                        : 'U')
+                            ? authController.currentUser!.name!.substring(0, 1)
+                            : 'U')
                         .toUpperCase(),
                     style: AppTypography.labelMedium.copyWith(
                       color: AppTheme.primary,
@@ -246,94 +240,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildQuickStats() {
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          0,
-          AppSpacing.lg,
-          AppSpacing.xl,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildStatCard(
-                'Active',
-                '24/7',
-                Icons.schedule_outlined,
-                AppTheme.success,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _buildStatCard(
-                'Modules',
-                '4',
-                Icons.dashboard_outlined,
-                AppTheme.primary,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _buildStatCard(
-                'Items',
-                '2.5K+',
-                Icons.inventory_outlined,
-                AppTheme.warning,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        boxShadow: AppShadows.card,
-        border: Border.all(color: AppTheme.border, width: 1),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: AppTypography.h4.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppTheme.neutral900,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            label,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppTheme.neutral500,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildModulesSection() {
     return SliverToBoxAdapter(
       child: Container(
@@ -343,26 +249,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Business Modules',
-                      style: AppTypography.h2.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'Access your business operations',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppTheme.neutral500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              children: [],
             ),
             const SizedBox(height: AppSpacing.lg),
             LayoutBuilder(
@@ -380,20 +267,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 final double cardHeight =
                     cardWidth * 1.2; // Better aspect ratio for content
 
-                return Obx(() => GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: AppSpacing.md,
-                    mainAxisSpacing: AppSpacing.md,
-                    childAspectRatio: cardWidth / cardHeight,
+                return Obx(
+                  () => GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: AppSpacing.md,
+                      mainAxisSpacing: AppSpacing.md,
+                      childAspectRatio: cardWidth / cardHeight,
+                    ),
+                    itemCount: menuItems.length,
+                    itemBuilder: (context, index) {
+                      return _buildModuleCard(menuItems[index], index);
+                    },
                   ),
-                  itemCount: menuItems.length,
-                  itemBuilder: (context, index) {
-                    return _buildModuleCard(menuItems[index], index);
-                  },
-                ));
+                );
               },
             ),
           ],
@@ -555,9 +444,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           radius: 32,
                           backgroundColor: AppTheme.primarySurface,
                           child: Text(
-                            (authController.currentUser?.name?.isNotEmpty == true
-                                ? authController.currentUser!.name!.substring(0, 1)
-                                : 'U')
+                            (authController.currentUser?.name?.isNotEmpty ==
+                                        true
+                                    ? authController.currentUser!.name!
+                                        .substring(0, 1)
+                                    : 'U')
                                 .toUpperCase(),
                             style: AppTypography.h3.copyWith(
                               color: AppTheme.primary,

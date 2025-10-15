@@ -81,11 +81,12 @@ class ApiInterceptor extends Interceptor {
         return false;
       }
 
-      // Call refresh endpoint
+      // Call refresh endpoint with proper JSON format
       final response = await _dio.post(
         ApiConstants.authRefresh,
         data: {'refresh_token': refreshToken},
         options: Options(
+          contentType: Headers.jsonContentType,
           headers: {
             ApiConstants.contentTypeKey: ApiConstants.contentTypeValue,
           },

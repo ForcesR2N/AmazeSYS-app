@@ -8,9 +8,61 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF2847BA), // Try this color first
-      body: SplashScreenContent(),
+    return Scaffold(
+      backgroundColor: const Color(0xFF2847BA),
+      body: Stack(
+        children: [
+          const SplashScreenContent(),
+          // Status message overlay (optional - comment out if not needed)
+          Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: GetBuilder<SplashController>(
+              builder: (controller) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Loading indicator
+                      if (!controller.isCheckComplete)
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      // Status text
+                      Text(
+                        controller.statusMessage,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      // Error indicator
+                      if (controller.hasError) ...[
+                        const SizedBox(height: 8),
+                        const Icon(
+                          Icons.warning_rounded,
+                          color: Colors.amber,
+                          size: 20,
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

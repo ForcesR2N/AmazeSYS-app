@@ -183,7 +183,7 @@ class AuthService {
   Future<bool> refreshTokens() async {
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();
-      
+
       if (refreshToken == null) {
         return false;
       }
@@ -191,6 +191,9 @@ class AuthService {
       final response = await _apiClient.post(
         ApiConstants.authRefresh,
         data: {'refresh_token': refreshToken},
+        options: Options(
+          contentType: Headers.jsonContentType,
+        ),
       );
 
       if (response.statusCode == ApiConstants.statusOk && response.data != null) {
@@ -200,7 +203,7 @@ class AuthService {
 
         if (newAccessToken != null) {
           await _tokenStorage.updateAccessToken(newAccessToken, expiresInSeconds: 3600);
-          
+
           // Update refresh token if provided
           if (newRefreshToken != null) {
             await _tokenStorage.saveTokens(

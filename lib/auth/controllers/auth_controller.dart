@@ -29,20 +29,23 @@ class AuthController extends GetxController {
     try {
       _isInitializing.value = true;
 
-      // Initialize API client and token storage
-      ApiClient.instance.initialize();
-      await _tokenStorage.initialize();
+      final hasTokens = await _tokenStorage.hasValidTokens();
 
-      // Try to get current user if tokens exist
-      final user = await _authService.getCurrentUser();
-      if (user != null) {
-        _currentUser.value = user;
+      if (hasTokens) {
+        // Try to get current user if tokens exist
+        final user = await _authService.getCurrentUser();
+        if (user != null) {
+          _currentUser.value = user;
+          print('AuthController: Existing session found for user: ${user.name}');
+        } else {
+          print('AuthController: Token validation failed');
+        }
+      } else {
+        print('AuthController: No valid tokens found');
       }
-      // Note: Navigation is now handled by SplashController
-      // AuthController only manages authentication state
+  
     } catch (e) {
       print('AuthController: Initialization error: $e');
-      // Don't navigate on error, let SplashController handle it
     } finally {
       _isInitializing.value = false;
     }
