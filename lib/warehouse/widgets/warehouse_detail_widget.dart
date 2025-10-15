@@ -5,7 +5,7 @@ import '../../core/theme/app_theme.dart';
 
 class WarehouseDetailWidget extends StatelessWidget {
   final WarehouseDetail detail;
-  
+
   const WarehouseDetailWidget({super.key, required this.detail});
 
   @override
@@ -42,9 +42,7 @@ class WarehouseDetailWidget extends StatelessWidget {
         title: 'Branch',
         icon: Icons.store_outlined,
         color: AppTheme.success,
-        children: [
-          _buildInfoRow('Branch ID', detail.branchId),
-        ],
+        children: [_buildInfoRow('Branch ID', detail.branchId)],
       ),
 
       // Contact Information
@@ -61,64 +59,105 @@ class WarehouseDetailWidget extends StatelessWidget {
           ],
         ),
 
-      // Address Information  
+      // Address Information
       if (_hasLocationInfo())
         _buildInfoSection(
           title: 'Address',
           icon: Icons.location_on_outlined,
           color: const Color(0xFF8B5CF6),
           children: [
-            if (detail.address?.isNotEmpty == true)
-              _buildInfoRow('Street Address', detail.address!),
-            if (detail.wardName?.isNotEmpty == true)
-              _buildInfoRow('Ward (Kelurahan)', detail.wardName!),
-            if (detail.subdistrictName?.isNotEmpty == true)
-              _buildInfoRow('Subdistrict (Kecamatan)', detail.subdistrictName!),
-            if (detail.districtName?.isNotEmpty == true)
-              _buildInfoRow('District (Kabupaten/Kota)', detail.districtName!),
-            if (detail.provinceName?.isNotEmpty == true)
-              _buildInfoRow('Province', detail.provinceName!),
-            if (detail.fullAddress.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(top: AppSpacing.sm),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.3),
-                  ),
+            // Street Address (just address field)
+            _buildInfoRow('Street Address', detail.streetAddress),
+
+            // Full Address (complete with all location details)
+            Container(
+              margin: const EdgeInsets.only(top: AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                  color: const Color(0xFF8B5CF6).withOpacity(0.3),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.location_on_rounded,
-                          size: 16,
-                          color: Color(0xFF8B5CF6),
-                        ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          'Full Address',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: const Color(0xFF8B5CF6),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      detail.fullAddress,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppTheme.neutral800,
-                        height: 1.5,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.map_outlined,
+                        size: 16,
+                        color: Color(0xFF8B5CF6),
                       ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'Full Address',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: const Color(0xFF8B5CF6),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    detail.fullAddress,
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppTheme.neutral800,
+                      height: 1.6,
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+
+            // Location Details (collapsible/secondary info)
+            if (detail.wardName?.isNotEmpty == true ||
+                detail.subdistrictName?.isNotEmpty == true ||
+                detail.districtName?.isNotEmpty == true ||
+                detail.provinceName?.isNotEmpty == true)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Location Details',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppTheme.neutral500,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (detail.wardName?.isNotEmpty == true)
+                        _buildLocationChip(
+                          'Kel. ${detail.wardName}',
+                          Icons.home_work_outlined,
+                        ),
+                      if (detail.subdistrictName?.isNotEmpty == true)
+                        _buildLocationChip(
+                          'Kec. ${detail.subdistrictName}',
+                          Icons.location_city_outlined,
+                        ),
+                      if (detail.districtName?.isNotEmpty == true)
+                        _buildLocationChip(
+                          detail.districtName!,
+                          Icons.domain_outlined,
+                        ),
+                      if (detail.provinceName?.isNotEmpty == true)
+                        _buildLocationChip(
+                          detail.provinceName!,
+                          Icons.public_outlined,
+                        ),
+                    ],
+                  ),
+                ],
               ),
           ],
         ),
@@ -203,8 +242,38 @@ class WarehouseDetailWidget extends StatelessWidget {
           Text(
             value.isNotEmpty ? value : 'Not specified',
             style: AppTypography.bodyMedium.copyWith(
-              color: value.isNotEmpty ? AppTheme.neutral900 : AppTheme.neutral400,
+              color:
+                  value.isNotEmpty ? AppTheme.neutral900 : AppTheme.neutral400,
               height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Helper method to build location chips
+  Widget _buildLocationChip(String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.neutral100,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppTheme.neutral300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.neutral600),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppTheme.neutral700,
+              fontSize: 12,
             ),
           ),
         ],
@@ -214,15 +283,15 @@ class WarehouseDetailWidget extends StatelessWidget {
 
   bool _hasLocationInfo() {
     return (detail.address?.isNotEmpty == true) ||
-           (detail.wardName?.isNotEmpty == true) ||
-           (detail.subdistrictName?.isNotEmpty == true) ||
-           (detail.districtName?.isNotEmpty == true) ||
-           (detail.provinceName?.isNotEmpty == true);
+        (detail.wardName?.isNotEmpty == true) ||
+        (detail.subdistrictName?.isNotEmpty == true) ||
+        (detail.districtName?.isNotEmpty == true) ||
+        (detail.provinceName?.isNotEmpty == true);
   }
 
   bool _hasContactInfo() {
-    return (detail.picName?.isNotEmpty == true) || 
-           (detail.picContact?.isNotEmpty == true);
+    return (detail.picName?.isNotEmpty == true) ||
+        (detail.picContact?.isNotEmpty == true);
   }
 
   String _formatDateTime(DateTime dateTime) {

@@ -33,7 +33,7 @@ class CompanyDetailWidget extends StatelessWidget {
       itemName: detail.name,
       onEdit: () => _handleEdit(),
       onDelete: () => _handleDelete(),
-      showCreate: false, // Remove create button from detail view
+      showCreate: false,
     );
   }
 
@@ -107,70 +107,10 @@ class CompanyDetailWidget extends StatelessWidget {
           _buildInfoRow('Category', detail.categoryId),
           if (detail.note?.isNotEmpty == true)
             _buildInfoRow('Notes', detail.note!),
+          _buildInfoRow('Street Address', detail.fullAddress),
+          _buildInfoRow('Postal Code', detail.zipcode ?? 'Not specified'),
         ],
       ),
-
-      // Address & Location Information
-      if (_hasLocationInfo())
-        _buildInfoSection(
-          title: 'Address',
-          icon: Icons.location_on_outlined,
-          color: AppTheme.success,
-          children: [
-            if (detail.address?.isNotEmpty == true)
-              _buildInfoRow('Street Address', detail.address!),
-            if (detail.wardName?.isNotEmpty == true)
-              _buildInfoRow('Ward (Kelurahan)', detail.wardName!),
-            if (detail.subdistrictName?.isNotEmpty == true)
-              _buildInfoRow('Subdistrict (Kecamatan)', detail.subdistrictName!),
-            if (detail.districtName?.isNotEmpty == true)
-              _buildInfoRow('District (Kabupaten/Kota)', detail.districtName!),
-            if (detail.provinceName?.isNotEmpty == true)
-              _buildInfoRow('Province', detail.provinceName!),
-            if (detail.zipcode?.isNotEmpty == true)
-              _buildInfoRow('Postal Code', detail.zipcode!),
-            if (detail.fullAddress.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(top: AppSpacing.sm),
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: AppTheme.success.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  border: Border.all(color: AppTheme.success.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_rounded,
-                          size: 16,
-                          color: AppTheme.success,
-                        ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          'Full Address',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: AppTheme.success,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      detail.fullAddress,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppTheme.neutral800,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
 
       // Contact Information (PIC)
       if (_hasContactInfo())
@@ -269,6 +209,35 @@ class CompanyDetailWidget extends StatelessWidget {
               color:
                   value.isNotEmpty ? AppTheme.neutral900 : AppTheme.neutral400,
               height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Helper method to build location chips
+  Widget _buildLocationChip(String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppTheme.neutral100,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppTheme.neutral300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppTheme.neutral600),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppTheme.neutral700,
+              fontSize: 12,
             ),
           ),
         ],

@@ -96,16 +96,30 @@ class WarehouseDetail {
     };
   }
 
-  /// Get full address string
+  /// Get street address (just the address field)
+  String get streetAddress {
+    return address?.isNotEmpty == true ? address! : '-';
+  }
+
+  /// Get full address string (complete with district, subdistrict, province)
   String get fullAddress {
     List<String> addressParts = [];
-    
+
+    // Start with street address
     if (address?.isNotEmpty == true) addressParts.add(address!);
-    if (wardName?.isNotEmpty == true) addressParts.add(wardName!);
-    if (subdistrictName?.isNotEmpty == true) addressParts.add(subdistrictName!);
+
+    // Add ward (kelurahan)
+    if (wardName?.isNotEmpty == true) addressParts.add('Kel. $wardName');
+
+    // Add subdistrict (kecamatan)
+    if (subdistrictName?.isNotEmpty == true) addressParts.add('Kec. $subdistrictName');
+
+    // Add district (kabupaten/kota)
     if (districtName?.isNotEmpty == true) addressParts.add(districtName!);
+
+    // Add province
     if (provinceName?.isNotEmpty == true) addressParts.add(provinceName!);
-    
-    return addressParts.join(', ');
+
+    return addressParts.isNotEmpty ? addressParts.join(', ') : '-';
   }
 }
