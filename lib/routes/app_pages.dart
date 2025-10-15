@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import '../pages/splash_page.dart';
+import '../splash/views/splash_page.dart';
 import '../auth/views/login_page.dart';
 import '../auth/views/register_page.dart';
 import '../pages/home_page.dart';
@@ -10,6 +10,7 @@ import '../table/views/table_page.dart';
 import '../profile/views/profile_page.dart';
 import '../company/views/company_form_page.dart';
 import '../auth/bindings/auth_binding.dart';
+import '../splash/bindings/splash_binding.dart';
 import '../list-pages/bindings/list_binding.dart';
 import '../list-pages/bindings/category_list_binding.dart';
 import '../navbar/bindings/navbar_binding.dart';
@@ -42,6 +43,7 @@ class AppPages {
     GetPage(
       name: '/splash',
       page: () => const SplashPage(),
+      binding: SplashBinding(),
     ),
     GetPage(
       name: _Paths.LOGIN,
@@ -69,7 +71,7 @@ class AppPages {
       binding: ListBinding(),
     ),
     GetPage(
-      name: _Paths.PRODUCT_DETAIL, 
+      name: _Paths.PRODUCT_DETAIL,
       page: () => const ProductDetailPage(),
       binding: BindingsBuilder(() {
         // ProductDetailController is created with Get.put in the page itself

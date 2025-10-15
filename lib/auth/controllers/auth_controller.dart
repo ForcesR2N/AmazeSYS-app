@@ -28,24 +28,21 @@ class AuthController extends GetxController {
   Future<void> _initializeApp() async {
     try {
       _isInitializing.value = true;
-      
+
       // Initialize API client and token storage
       ApiClient.instance.initialize();
       await _tokenStorage.initialize();
-      
+
       // Try to get current user if tokens exist
       final user = await _authService.getCurrentUser();
       if (user != null) {
         _currentUser.value = user;
-        // User is already logged in, navigate to home
-        Get.offAllNamed(Routes.HOME);
-      } else {
-        // No valid session, navigate to login
-        Get.offAllNamed(Routes.LOGIN);
       }
+      // Note: Navigation is now handled by SplashController
+      // AuthController only manages authentication state
     } catch (e) {
-      // On error, go to login
-      Get.offAllNamed(Routes.LOGIN);
+      print('AuthController: Initialization error: $e');
+      // Don't navigate on error, let SplashController handle it
     } finally {
       _isInitializing.value = false;
     }
