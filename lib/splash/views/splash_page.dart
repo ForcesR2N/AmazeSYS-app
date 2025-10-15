@@ -9,7 +9,9 @@ class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: const Color(
+        0xFF1E3A8A,
+      ), // Blue background matching animation
       body: const SplashScreenContent(),
     );
   }
@@ -54,17 +56,17 @@ class _SplashScreenContentState extends State<SplashScreenContent>
     );
 
     // Lottie controller - will be set when animation loads
-    _lottieController = AnimationController(
-      vsync: this,
-    );
+    _lottieController = AnimationController(vsync: this);
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeIn),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _scaleController, curve: Curves.easeOut));
   }
 
   void _startAnimationSequence() {
@@ -82,7 +84,9 @@ class _SplashScreenContentState extends State<SplashScreenContent>
   void _onLottieAnimationLoaded(LottieComposition composition) {
     if (!mounted) return;
 
-    print('SplashScreen: Lottie animation loaded - Duration: ${composition.duration}');
+    print(
+      'SplashScreen: Lottie animation loaded - Duration: ${composition.duration}',
+    );
 
     // Set the controller duration to match the composition
     _lottieController.duration = composition.duration;
@@ -95,7 +99,9 @@ class _SplashScreenContentState extends State<SplashScreenContent>
   }
 
   void _onAnimationStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed && mounted && !_animationCompleted) {
+    if (status == AnimationStatus.completed &&
+        mounted &&
+        !_animationCompleted) {
       print('SplashScreen: Lottie animation completed');
       _animationCompleted = true;
       _notifyControllerAnimationComplete();
@@ -143,16 +149,11 @@ class _SplashScreenContentState extends State<SplashScreenContent>
           child: Transform.scale(
             scale: _scaleAnimation.value,
             child: Center(
-              child: Container(
-                width: size.width * 0.8,
-                constraints: const BoxConstraints(
-                  minHeight: 200,
-                  maxHeight: 500,
-                ),
+              child: SizedBox.expand(
                 child: Lottie.asset(
                   'asset/animation-splash-screen.json',
                   controller: _lottieController,
-                  fit: BoxFit.contain,
+                  fit: BoxFit.cover,
                   repeat: false,
                   animate: true,
                   onLoaded: _onLottieAnimationLoaded,
