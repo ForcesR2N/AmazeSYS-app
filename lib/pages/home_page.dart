@@ -8,7 +8,6 @@ import '../routes/app_pages.dart';
 import '../core/theme/app_theme.dart';
 import '../list-pages/services/list_service.dart';
 import '../navbar/widgets/bottom_navbar.dart';
-import '../table/views/table_page.dart';
 import '../profile/views/profile_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -133,11 +132,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      _buildHomePage(),
-      const TablePage(),
-      const ProfilePage(),
-    ];
+    final List<Widget> pages = [_buildHomePage(), const ProfilePage()];
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceVariant,

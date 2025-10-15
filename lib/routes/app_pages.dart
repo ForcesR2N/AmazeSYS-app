@@ -6,7 +6,6 @@ import '../pages/home_page.dart';
 import '../list-pages/views/list_page.dart';
 import '../list-pages/views/category_list_page.dart';
 import '../product/views/product_detail_page.dart';
-import '../table/views/table_page.dart';
 import '../profile/views/profile_page.dart';
 import '../company/views/company_form_page.dart';
 import '../auth/bindings/auth_binding.dart';
@@ -74,8 +73,6 @@ class AppPages {
       name: _Paths.PRODUCT_DETAIL,
       page: () => const ProductDetailPage(),
       binding: BindingsBuilder(() {
-        // ProductDetailController is created with Get.put in the page itself
-        // to ensure NavigationStackManager is already available
       }),
     ),
     GetPage(
