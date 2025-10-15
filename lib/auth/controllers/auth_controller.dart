@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../../routes/app_pages.dart';
 import '../../core/api/api_client.dart';
 import '../../core/storage/token_storage.dart';
+import '../../core/widgets/custom_snackbar.dart';
 
 class AuthController extends GetxController {
   final AuthService _authService = AuthService();
@@ -162,24 +163,16 @@ class AuthController extends GetxController {
 
   // Helper method to show error messages
   void _showError(String message) {
-    Get.snackbar(
-      'Error',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Get.theme.colorScheme.errorContainer,
-      colorText: Get.theme.colorScheme.onErrorContainer,
+    CustomSnackbar.error(
+      message: message,
       duration: const Duration(seconds: 3),
     );
   }
 
   // Helper method to show success messages
   void _showSuccess(String message) {
-    Get.snackbar(
-      'Success',
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Get.theme.colorScheme.primaryContainer,
-      colorText: Get.theme.colorScheme.onPrimaryContainer,
+    CustomSnackbar.success(
+      message: message,
       duration: const Duration(seconds: 2),
     );
   }

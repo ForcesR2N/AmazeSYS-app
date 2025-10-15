@@ -43,6 +43,7 @@ dependencies:
   get_storage: ^2.1.1
   intl: ^0.19.0
   lottie: ^3.1.2
+  dropdown_search: ^6.0.2
 
 dev_dependencies:
   flutter_test:

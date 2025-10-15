@@ -4,6 +4,7 @@ import '../models/company_detail_model.dart';
 import '../services/company_service.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/custom_snackbar.dart';
+import '../../core/widgets/location_form_widget.dart';
 
 class CompanyFormController extends BaseFormController {
   late final CompanyService _companyService;
@@ -33,21 +34,24 @@ class CompanyFormController extends BaseFormController {
   @override
   String get entityName => 'Company';
 
+  late final LocationFormController _locationController;
+
   @override
   void onInit() {
     super.onInit();
     _companyService = Get.find<CompanyService>();
+
+    // Initialize location controller with unique tag
+    _locationController = Get.put(LocationFormController(), tag: 'company_location');
+
     _initializeFormData();
-    _loadCategories();
     _setupFormListeners();
 
-    // Ensure form population for edit mode
-    if (_existingCompany != null) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _populateFormWithExistingData();
-      });
-    }
+    // Load categories and populate form immediately (no delay!)
+    _loadCategories();
   }
+
+  LocationFormController get locationController => _locationController;
 
   void _setupFormListeners() {
     // Add listeners to text controllers to track changes
@@ -61,19 +65,15 @@ class CompanyFormController extends BaseFormController {
 
     // Listen to category changes
     ever(selectedCategoryId, (_) => markFormAsDirty());
+
+    // Listen to location changes
+    ever(_locationController.selectedProvince, (_) => markFormAsDirty());
+    ever(_locationController.selectedDistrict, (_) => markFormAsDirty());
+    ever(_locationController.selectedSubdistrict, (_) => markFormAsDirty());
+    ever(_locationController.selectedWard, (_) => markFormAsDirty());
+    ever(_locationController.selectedZipcode, (_) => markFormAsDirty());
   }
 
-  @override
-  void onClose() {
-    nameController.dispose();
-    codeController.dispose();
-    descriptionController.dispose();
-    addressController.dispose();
-    picNameController.dispose();
-    picContactController.dispose();
-    noteController.dispose();
-    super.onClose();
-  }
 
   void _initializeFormData() {
     final arguments = Get.arguments as Map<String, dynamic>?;
@@ -83,9 +83,10 @@ class CompanyFormController extends BaseFormController {
     }
   }
 
-  void _populateFormWithExistingData() {
+  Future<void> _populateFormWithExistingData() async {
     if (_existingCompany == null) return;
 
+    // Populate text fields immediately (no delay)
     nameController.text = _existingCompany!.name;
     codeController.text = _existingCompany!.code;
     descriptionController.text = _existingCompany!.description;
@@ -109,6 +110,15 @@ class CompanyFormController extends BaseFormController {
         selectedCategoryId.value = _existingCompany!.categoryId;
       }
     }
+
+    // Load location data in parallel (optimized!)
+    await _locationController.loadExistingLocation(
+      provinceId: _existingCompany!.provinceId,
+      districtId: _existingCompany!.districtId,
+      subdistrictId: _existingCompany!.subdistrictId,
+      wardId: _existingCompany!.wardId,
+      zipcodeId: _existingCompany!.zipcodeId,
+    );
   }
 
   Future<void> _loadCategories() async {
@@ -124,8 +134,9 @@ class CompanyFormController extends BaseFormController {
       _setFallbackCategories();
     }
 
+    // Populate form immediately after categories are loaded
     if (_existingCompany != null) {
-      _populateFormWithExistingData();
+      await _populateFormWithExistingData();
     }
   }
 
@@ -165,6 +176,17 @@ class CompanyFormController extends BaseFormController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      // Get location data from location controller
+      final locationData = _locationController.getLocationData();
+
+      // DEBUG: Log location data being sent
+      print('📍 Location Data: $locationData');
+      print('📍 Province: ${_locationController.selectedProvince.value?.id} - ${_locationController.selectedProvince.value?.name}');
+      print('📍 District: ${_locationController.selectedDistrict.value?.id} - ${_locationController.selectedDistrict.value?.name}');
+      print('📍 Subdistrict: ${_locationController.selectedSubdistrict.value?.id} - ${_locationController.selectedSubdistrict.value?.name}');
+      print('📍 Ward: ${_locationController.selectedWard.value?.id} - ${_locationController.selectedWard.value?.name}');
+      print('📍 Zipcode: ${_locationController.selectedZipcode.value?.id} - ${_locationController.selectedZipcode.value?.code}');
+
       final companyData = {
         'name': nameController.text.trim(),
         'code_id': codeController.text.trim(),
@@ -174,7 +196,10 @@ class CompanyFormController extends BaseFormController {
         'pic_name': picNameController.text.trim(),
         'pic_contact': picContactController.text.trim(),
         'note': noteController.text.trim(),
+        ...locationData,
       };
+
+      print('📦 Company Data being sent: $companyData');
 
       if (isEditMode) {
         await _companyService.updateCompany(_existingCompany!.id, companyData);
@@ -187,7 +212,7 @@ class CompanyFormController extends BaseFormController {
       Get.back(result: true);
     } catch (e) {
       errorMessage.value = 'Failed to save company: ${e.toString()}';
-      CustomSnackbar.error(title: 'Error', message: errorMessage.value);
+      CustomSnackbar.error(message: errorMessage.value);
     } finally {
       isLoading.value = false;
     }
@@ -204,6 +229,20 @@ class CompanyFormController extends BaseFormController {
     noteController.clear();
     selectedCategoryId.value = '';
     errorMessage.value = '';
+    _locationController.reset();
     formKey.currentState?.reset();
+  }
+
+  @override
+  void onClose() {
+    nameController.dispose();
+    codeController.dispose();
+    descriptionController.dispose();
+    addressController.dispose();
+    picNameController.dispose();
+    picContactController.dispose();
+    noteController.dispose();
+    Get.delete<LocationFormController>(tag: 'company_location');
+    super.onClose();
   }
 }

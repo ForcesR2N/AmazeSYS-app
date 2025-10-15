@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
+import '../../core/widgets/custom_snackbar.dart';
 
 class RegisterPage extends StatefulWidget {
   RegisterPage({super.key});
@@ -120,10 +121,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _handleRegister() {
     if (passwordController.text != confirmPasswordController.text) {
-      Get.snackbar(
-        'Error',
-        'Password and confirm password do not match',
-        snackPosition: SnackPosition.BOTTOM,
+      CustomSnackbar.error(
+        message: 'Password and confirm password do not match',
       );
       return;
     }

@@ -6,6 +6,7 @@ import '../services/product_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../list-pages/widgets/skeleton_loader.dart';
 import '../controllers/product_detail_controller.dart';
+import '../../core/widgets/custom_snackbar.dart';
 
 class ProductDetailPage extends StatelessWidget {
   const ProductDetailPage({super.key});
@@ -641,14 +642,8 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
     return GestureDetector(
       onTap: () {
         Get.back();
-        Get.snackbar(
-          'Shared!',
-          'Product shared via $label',
-          backgroundColor: color.withOpacity(0.1),
-          colorText: color,
-          borderRadius: AppRadius.lg,
-          margin: const EdgeInsets.all(AppSpacing.md),
-          icon: Icon(Icons.share_outlined, color: color),
+        CustomSnackbar.success(
+          message: 'Product shared via $label',
         );
       },
       child: Column(
@@ -677,14 +672,8 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
   }
 
   void _showWishlistSnackbar() {
-    Get.snackbar(
-      'Added to Wishlist!',
-      'Product has been saved to your wishlist',
-      backgroundColor: AppTheme.errorLight,
-      colorText: AppTheme.error,
-      borderRadius: AppRadius.lg,
-      margin: const EdgeInsets.all(AppSpacing.md),
-      icon: Icon(Icons.favorite, color: AppTheme.error),
+    CustomSnackbar.success(
+      message: 'Product has been saved to your wishlist',
     );
   }
 

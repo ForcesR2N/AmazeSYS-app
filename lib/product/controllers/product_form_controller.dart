@@ -177,7 +177,7 @@ class ProductFormController extends BaseFormController {
       Get.back(result: true);
     } catch (e) {
       errorMessage.value = 'Failed to save product: ${e.toString()}';
-      CustomSnackbar.error(title: 'Error', message: errorMessage.value);
+      CustomSnackbar.error(message: errorMessage.value);
     } finally {
       isLoading.value = false;
     }

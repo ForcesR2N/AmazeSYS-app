@@ -18,6 +18,8 @@ class WarehouseDetail {
   final String? subdistrictName;
   final String? wardId;
   final String? wardName;
+  final String? zipcodeId;
+  final String? zipcode;
 
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -40,6 +42,8 @@ class WarehouseDetail {
     this.subdistrictName,
     this.wardId,
     this.wardName,
+    this.zipcodeId,
+    this.zipcode,
     this.createdAt,
     this.updatedAt,
   });
@@ -126,6 +130,8 @@ class WarehouseDetail {
         subdistrictName: subdistrictName,
         wardId: wardId,
         wardName: wardName,
+        zipcodeId: zipcodeId,
+        zipcode: zipcode,
         createdAt: json['created_at'] != null
             ? DateTime.tryParse(json['created_at'].toString())
             : null,
@@ -164,6 +170,8 @@ class WarehouseDetail {
       'subdistrict_name': subdistrictName,
       'ward_id': wardId,
       'ward_name': wardName,
+      'zipcode_id': zipcodeId,
+      'zipcode': zipcode,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -192,6 +200,9 @@ class WarehouseDetail {
 
     // Add province
     if (provinceName?.isNotEmpty == true) addressParts.add(provinceName!);
+
+    // Add zipcode
+    if (zipcode?.isNotEmpty == true) addressParts.add(zipcode!);
 
     return addressParts.isNotEmpty ? addressParts.join(', ') : '-';
   }

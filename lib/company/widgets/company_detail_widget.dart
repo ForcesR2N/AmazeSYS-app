@@ -50,7 +50,6 @@ class CompanyDetailWidget extends StatelessWidget {
     // If company was updated successfully, show feedback and refresh
     if (result == true) {
       CustomSnackbar.success(
-        title: 'Company Updated',
         message: 'Company information has been updated successfully',
       );
 
@@ -72,7 +71,6 @@ class CompanyDetailWidget extends StatelessWidget {
       if (success) {
         // Show success feedback
         CustomSnackbar.success(
-          title: 'Company Deleted',
           message: '${detail.name} has been deleted successfully',
         );
 
@@ -87,7 +85,6 @@ class CompanyDetailWidget extends StatelessWidget {
       }
     } catch (e) {
       CustomSnackbar.error(
-        title: 'Delete Failed',
         message: 'Failed to delete company: ${e.toString()}',
       );
     }

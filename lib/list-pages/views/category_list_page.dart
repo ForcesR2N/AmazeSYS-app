@@ -340,7 +340,6 @@ class CategoryListPage extends StatelessWidget {
     // If company was created successfully, show feedback and refresh the list
     if (result == true) {
       CustomSnackbar.success(
-        title: '${controller.currentLevel.displayName} Created',
         message: 'New ${controller.currentLevel.displayName.toLowerCase()} has been added successfully',
       );
       await controller.refreshItems();

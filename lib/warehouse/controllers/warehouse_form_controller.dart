@@ -4,6 +4,7 @@ import '../models/warehouse_detail_model.dart';
 import '../services/warehouse_service.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/custom_snackbar.dart';
+import '../../core/widgets/location_form_widget.dart';
 
 class WarehouseFormController extends BaseFormController {
   late final WarehouseService _warehouseService;
@@ -33,21 +34,24 @@ class WarehouseFormController extends BaseFormController {
   @override
   String get entityName => 'Warehouse';
 
+  late final LocationFormController _locationController;
+
   @override
   void onInit() {
     super.onInit();
     _warehouseService = Get.find<WarehouseService>();
+
+    // Initialize location controller with unique tag
+    _locationController = Get.put(LocationFormController(), tag: 'warehouse_location');
+
     _initializeFormData();
-    _loadBranches();
     _setupFormListeners();
 
-    // Ensure form population for edit mode
-    if (_existingWarehouse != null) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _populateFormWithExistingData();
-      });
-    }
+    // Load branches and populate form immediately (no delay!)
+    _loadBranches();
   }
+
+  LocationFormController get locationController => _locationController;
 
   void _setupFormListeners() {
     // Add listeners to text controllers to track changes
@@ -61,19 +65,15 @@ class WarehouseFormController extends BaseFormController {
 
     // Listen to branch changes
     ever(selectedBranchId, (_) => markFormAsDirty());
+
+    // Listen to location changes
+    ever(_locationController.selectedProvince, (_) => markFormAsDirty());
+    ever(_locationController.selectedDistrict, (_) => markFormAsDirty());
+    ever(_locationController.selectedSubdistrict, (_) => markFormAsDirty());
+    ever(_locationController.selectedWard, (_) => markFormAsDirty());
+    ever(_locationController.selectedZipcode, (_) => markFormAsDirty());
   }
 
-  @override
-  void onClose() {
-    nameController.dispose();
-    codeController.dispose();
-    descriptionController.dispose();
-    addressController.dispose();
-    picNameController.dispose();
-    picContactController.dispose();
-    noteController.dispose();
-    super.onClose();
-  }
 
   void _initializeFormData() {
     final arguments = Get.arguments as Map<String, dynamic>?;
@@ -83,9 +83,10 @@ class WarehouseFormController extends BaseFormController {
     }
   }
 
-  void _populateFormWithExistingData() {
+  Future<void> _populateFormWithExistingData() async {
     if (_existingWarehouse == null) return;
 
+    // Populate text fields immediately (no delay)
     nameController.text = _existingWarehouse!.name;
     codeController.text = _existingWarehouse!.codeId ?? '';
     descriptionController.text = _existingWarehouse!.description;
@@ -95,6 +96,15 @@ class WarehouseFormController extends BaseFormController {
     noteController.text = _existingWarehouse!.note ?? '';
 
     selectedBranchId.value = _existingWarehouse!.branchId;
+
+    // Load location data in parallel (optimized!)
+    await _locationController.loadExistingLocation(
+      provinceId: _existingWarehouse!.provinceId,
+      districtId: _existingWarehouse!.districtId,
+      subdistrictId: _existingWarehouse!.subdistrictId,
+      wardId: _existingWarehouse!.wardId,
+      zipcodeId: _existingWarehouse!.zipcodeId,
+    );
   }
 
   Future<void> _loadBranches() async {
@@ -105,8 +115,9 @@ class WarehouseFormController extends BaseFormController {
       _setFallbackBranches();
     }
 
+    // Populate form immediately after branches are loaded
     if (_existingWarehouse != null) {
-      _populateFormWithExistingData();
+      await _populateFormWithExistingData();
     }
   }
 
@@ -142,6 +153,17 @@ class WarehouseFormController extends BaseFormController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      // Get location data from location controller
+      final locationData = _locationController.getLocationData();
+
+      // DEBUG: Log location data being sent
+      print('📍 Location Data: $locationData');
+      print('📍 Province: ${_locationController.selectedProvince.value?.id} - ${_locationController.selectedProvince.value?.name}');
+      print('📍 District: ${_locationController.selectedDistrict.value?.id} - ${_locationController.selectedDistrict.value?.name}');
+      print('📍 Subdistrict: ${_locationController.selectedSubdistrict.value?.id} - ${_locationController.selectedSubdistrict.value?.name}');
+      print('📍 Ward: ${_locationController.selectedWard.value?.id} - ${_locationController.selectedWard.value?.name}');
+      print('📍 Zipcode: ${_locationController.selectedZipcode.value?.id} - ${_locationController.selectedZipcode.value?.code}');
+
       final warehouseData = {
         'name': nameController.text.trim(),
         'code_id': codeController.text.trim().isNotEmpty ? codeController.text.trim() : null,
@@ -151,7 +173,10 @@ class WarehouseFormController extends BaseFormController {
         'pic_name': picNameController.text.trim().isNotEmpty ? picNameController.text.trim() : null,
         'pic_contact': picContactController.text.trim().isNotEmpty ? picContactController.text.trim() : null,
         'note': noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
+        ...locationData,
       };
+
+      print('📦 Warehouse Data being sent: $warehouseData');
 
       if (isEditMode) {
         await _warehouseService.updateWarehouse(_existingWarehouse!.id, warehouseData);
@@ -164,7 +189,7 @@ class WarehouseFormController extends BaseFormController {
       Get.back(result: true);
     } catch (e) {
       errorMessage.value = 'Failed to save warehouse: ${e.toString()}';
-      CustomSnackbar.error(title: 'Error', message: errorMessage.value);
+      CustomSnackbar.error(message: errorMessage.value);
     } finally {
       isLoading.value = false;
     }
@@ -181,6 +206,20 @@ class WarehouseFormController extends BaseFormController {
     noteController.clear();
     selectedBranchId.value = '';
     errorMessage.value = '';
+    _locationController.reset();
     formKey.currentState?.reset();
+  }
+
+  @override
+  void onClose() {
+    nameController.dispose();
+    codeController.dispose();
+    descriptionController.dispose();
+    addressController.dispose();
+    picNameController.dispose();
+    picContactController.dispose();
+    noteController.dispose();
+    Get.delete<LocationFormController>(tag: 'warehouse_location');
+    super.onClose();
   }
 }

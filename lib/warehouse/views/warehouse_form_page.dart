@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/warehouse_form_controller.dart';
 import '../../core/widgets/base_form_page.dart';
+import '../../core/widgets/location_form_widget.dart';
 import '../../core/theme/app_theme.dart';
 
 class WarehouseFormPage extends StatelessWidget {
@@ -111,14 +112,19 @@ class WarehouseFormPage extends StatelessWidget {
         _buildSectionHeader('Location Information'),
         const SizedBox(height: AppSpacing.md),
 
+        // Location form fields (province, district, subdistrict, ward, zipcode)
+        LocationFormWidget(tag: 'warehouse_location'),
+
+        // Street Address Field
         CustomFormField(
-          label: 'Address',
+          label: 'Street Address',
+          helperText: 'Building number, street name, etc.',
           child: TextFormField(
             controller: controller.addressController,
             maxLines: 2,
             decoration: buildInputDecoration(
-              hintText: 'Enter warehouse address',
-              prefixIcon: Icons.location_on,
+              hintText: 'Enter street address',
+              prefixIcon: Icons.home,
             ),
           ),
         ),

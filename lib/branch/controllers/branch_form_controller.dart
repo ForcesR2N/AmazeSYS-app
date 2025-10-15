@@ -4,9 +4,11 @@ import '../models/branch_detail_model.dart';
 import '../services/branch_service.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/custom_snackbar.dart';
+import '../../core/widgets/location_form_widget.dart';
 
 class BranchFormController extends BaseFormController {
   late final BranchService _branchService;
+  late final LocationFormController _locationController;
 
   // Form controllers
   final TextEditingController nameController = TextEditingController();
@@ -37,17 +39,18 @@ class BranchFormController extends BaseFormController {
   void onInit() {
     super.onInit();
     _branchService = Get.find<BranchService>();
+
+    // Initialize location controller with unique tag
+    _locationController = Get.put(LocationFormController(), tag: 'branch_location');
+
     _initializeFormData();
-    _loadCompanies();
     _setupFormListeners();
 
-    // Ensure form population for edit mode
-    if (_existingBranch != null) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _populateFormWithExistingData();
-      });
-    }
+    // Load companies and populate form immediately (no delay!)
+    _loadCompanies();
   }
+
+  LocationFormController get locationController => _locationController;
 
   void _setupFormListeners() {
     // Add listeners to text controllers to track changes
@@ -61,19 +64,15 @@ class BranchFormController extends BaseFormController {
 
     // Listen to company changes
     ever(selectedCompanyId, (_) => markFormAsDirty());
+
+    // Listen to location changes
+    ever(_locationController.selectedProvince, (_) => markFormAsDirty());
+    ever(_locationController.selectedDistrict, (_) => markFormAsDirty());
+    ever(_locationController.selectedSubdistrict, (_) => markFormAsDirty());
+    ever(_locationController.selectedWard, (_) => markFormAsDirty());
+    ever(_locationController.selectedZipcode, (_) => markFormAsDirty());
   }
 
-  @override
-  void onClose() {
-    nameController.dispose();
-    codeController.dispose();
-    descriptionController.dispose();
-    addressController.dispose();
-    picNameController.dispose();
-    picContactController.dispose();
-    noteController.dispose();
-    super.onClose();
-  }
 
   void _initializeFormData() {
     final arguments = Get.arguments as Map<String, dynamic>?;
@@ -83,9 +82,10 @@ class BranchFormController extends BaseFormController {
     }
   }
 
-  void _populateFormWithExistingData() {
+  Future<void> _populateFormWithExistingData() async {
     if (_existingBranch == null) return;
 
+    // Populate text fields immediately (no delay)
     nameController.text = _existingBranch!.name;
     codeController.text = _existingBranch!.codeId ?? '';
     descriptionController.text = _existingBranch!.description;
@@ -95,6 +95,15 @@ class BranchFormController extends BaseFormController {
     noteController.text = _existingBranch!.note ?? '';
 
     selectedCompanyId.value = _existingBranch!.companyId;
+
+    // Load location data in parallel (optimized!)
+    await _locationController.loadExistingLocation(
+      provinceId: _existingBranch!.provinceId,
+      districtId: _existingBranch!.districtId,
+      subdistrictId: _existingBranch!.subdistrictId,
+      wardId: _existingBranch!.wardId,
+      zipcodeId: _existingBranch!.zipcodeId,
+    );
   }
 
   Future<void> _loadCompanies() async {
@@ -105,8 +114,9 @@ class BranchFormController extends BaseFormController {
       _setFallbackCompanies();
     }
 
+    // Populate form immediately after companies are loaded
     if (_existingBranch != null) {
-      _populateFormWithExistingData();
+      await _populateFormWithExistingData();
     }
   }
 
@@ -142,6 +152,17 @@ class BranchFormController extends BaseFormController {
       isLoading.value = true;
       errorMessage.value = '';
 
+      // Get location data from location controller
+      final locationData = _locationController.getLocationData();
+
+      // DEBUG: Log location data being sent
+      print('📍 Location Data: $locationData');
+      print('📍 Province: ${_locationController.selectedProvince.value?.id} - ${_locationController.selectedProvince.value?.name}');
+      print('📍 District: ${_locationController.selectedDistrict.value?.id} - ${_locationController.selectedDistrict.value?.name}');
+      print('📍 Subdistrict: ${_locationController.selectedSubdistrict.value?.id} - ${_locationController.selectedSubdistrict.value?.name}');
+      print('📍 Ward: ${_locationController.selectedWard.value?.id} - ${_locationController.selectedWard.value?.name}');
+      print('📍 Zipcode: ${_locationController.selectedZipcode.value?.id} - ${_locationController.selectedZipcode.value?.code}');
+
       final branchData = {
         'name': nameController.text.trim(),
         'code_id': codeController.text.trim().isNotEmpty ? codeController.text.trim() : null,
@@ -151,7 +172,10 @@ class BranchFormController extends BaseFormController {
         'pic_name': picNameController.text.trim().isNotEmpty ? picNameController.text.trim() : null,
         'pic_contact': picContactController.text.trim().isNotEmpty ? picContactController.text.trim() : null,
         'note': noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
+        ...locationData,
       };
+
+      print('📦 Branch Data being sent: $branchData');
 
       if (isEditMode) {
         await _branchService.updateBranch(_existingBranch!.id, branchData);
@@ -164,8 +188,8 @@ class BranchFormController extends BaseFormController {
       Get.back(result: true);
     } catch (e) {
       errorMessage.value = 'Failed to save branch: ${e.toString()}';
-      CustomSnackbar.error(title: 'Error', message: errorMessage.value);
-    } finally {
+      CustomSnackbar.error(message: errorMessage.value);
+    } finally{
       isLoading.value = false;
     }
   }
@@ -181,6 +205,20 @@ class BranchFormController extends BaseFormController {
     noteController.clear();
     selectedCompanyId.value = '';
     errorMessage.value = '';
+    _locationController.reset();
     formKey.currentState?.reset();
+  }
+
+  @override
+  void onClose() {
+    nameController.dispose();
+    codeController.dispose();
+    descriptionController.dispose();
+    addressController.dispose();
+    picNameController.dispose();
+    picContactController.dispose();
+    noteController.dispose();
+    Get.delete<LocationFormController>(tag: 'branch_location');
+    super.onClose();
   }
 }

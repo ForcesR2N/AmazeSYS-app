@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'routes/app_pages.dart';
 import 'auth/controllers/auth_controller.dart';
 import 'core/services/navigation_stack_manager.dart';
+import 'core/services/location_service.dart';
 import 'company/services/company_service.dart';
 import 'core/storage/token_storage.dart';
 import 'core/api/api_client.dart';
@@ -15,6 +16,9 @@ void main() async {
   // Initialize services
   await Get.putAsync(() async => NavigationStackManager());
   Get.put(AuthController(), permanent: true);
+
+  // Initialize core services globally
+  Get.put(LocationService(), permanent: true);
 
   // Initialize entity services globally
   Get.put(CompanyService(), permanent: true);
