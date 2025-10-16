@@ -13,7 +13,6 @@ class SplashPage extends StatelessWidget {
       body: Stack(
         children: [
           const SplashScreenContent(),
-          // Status message overlay (optional - comment out if not needed)
           Positioned(
             bottom: 100,
             left: 0,
@@ -35,7 +34,6 @@ class SplashPage extends StatelessWidget {
                           ),
                         ),
                       const SizedBox(height: 16),
-                      // Status text
                       Text(
                         controller.statusMessage,
                         style: const TextStyle(
@@ -46,7 +44,6 @@ class SplashPage extends StatelessWidget {
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      // Error indicator
                       if (controller.hasError) ...[
                         const SizedBox(height: 8),
                         const Icon(
@@ -192,7 +189,7 @@ class _SplashScreenContentState extends State<SplashScreenContent>
               child: Lottie.asset(
                 'asset/animation-splash-screen.json',
                 controller: _lottieController,
-                fit: BoxFit.cover, // ← Changed from cover to fill = NO SPACE
+                fit: BoxFit.cover,
                 repeat: false,
                 animate: true,
                 onLoaded: _onLottieAnimationLoaded,

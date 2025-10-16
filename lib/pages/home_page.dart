@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../auth/controllers/auth_controller.dart';
 import '../navbar/controllers/navbar_controller.dart';
-import '../list-pages/models/list_item.dart';
-import '../list-pages/models/list_arguments.dart';
-import '../routes/app_pages.dart';
-import '../core/theme/app_theme.dart';
-import '../list-pages/services/list_service.dart';
 import '../navbar/widgets/bottom_navbar.dart';
+import '../favorites/views/favorites_page.dart';
 import '../profile/views/profile_page.dart';
+import '../core/theme/app_theme.dart';
+import 'controllers/home_controller.dart';
+import 'widgets/home_app_bar.dart';
+import 'widgets/modules_grid_section.dart';
 
+/// Main home page with navigation to different modules
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -18,56 +18,86 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  final AuthController authController = Get.find<AuthController>();
-  final ListService _listService = ListService();
-  late final NavbarController navbarController;
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  final RxList<Map<String, dynamic>> menuItems =
-      <Map<String, dynamic>>[
-        {
-          'name': 'Companies',
-          'level': 'company',
-          'icon': Icons.business_outlined,
-          'count': '...',
-          'color': AppTheme.primary,
-        },
-        {
-          'name': 'Branches',
-          'level': 'branch',
-          'icon': Icons.store_outlined,
-          'count': '...',
-          'color': AppTheme.success,
-        },
-        {
-          'name': 'Warehouses',
-          'level': 'warehouse',
-          'icon': Icons.warehouse_outlined,
-          'count': '...',
-          'color': AppTheme.warning,
-        },
-        {
-          'name': 'Products',
-          'level': 'product',
-          'icon': Icons.inventory_2_outlined,
-          'count': '...',
-          'color': Color(0xFF8B5CF6),
-        },
-      ].obs;
+  late final NavbarController _navbarController;
+  late final HomeController _homeController;
+  late final AnimationController _fadeController;
+  late final AnimationController _slideController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+  late final FocusNode _focusNode;
+  bool _isFirstLoad = true;
 
   @override
   void initState() {
     super.initState();
+    _initializeControllers();
+    _setupAnimations();
+    _setupFocusNode();
+    _setupAutoRefresh();
+  }
 
-    // Initialize navbar controller if not already done
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.surfaceVariant,
+      body: PageView(
+        controller: _navbarController.pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: [
+          _buildHomeContent(),
+          const FavoritesPage(),
+          const ProfilePage(),
+        ],
+      ),
+      extendBody: true,
+      bottomNavigationBar: const BottomNavbar(),
+    );
+  }
+
+  Widget _buildHomeContent() {
+    return Focus(
+      focusNode: _focusNode,
+      child: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: RefreshIndicator(
+              onRefresh: _homeController.refreshCounts,
+              child: CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: const [
+                  HomeAppBar(),
+                  ModulesGridSection(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Private helper methods
+
+  void _initializeControllers() {
     if (!Get.isRegistered<NavbarController>()) {
       Get.put(NavbarController());
     }
-    navbarController = Get.find<NavbarController>();
+    _navbarController = Get.find<NavbarController>();
+    _homeController = Get.find<HomeController>();
+  }
 
+  void _setupAnimations() {
     _fadeController = AnimationController(
       duration: AppAnimations.medium,
       vsync: this,
@@ -88,469 +118,35 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _slideController, curve: AppAnimations.easeOut),
     );
 
-    // Start animations and load data
     _fadeController.forward();
     _slideController.forward();
-    _loadCounts();
   }
 
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
-    super.dispose();
+  void _setupFocusNode() {
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
   }
 
-  /// Load real counts from API
-  Future<void> _loadCounts() async {
-    try {
-      // Load counts for each level
-      for (int i = 0; i < menuItems.length; i++) {
-        final item = menuItems[i];
-        final levelString = item['level'] as String;
-        final level = ListLevel.values.firstWhere((e) => e.name == levelString);
-
-        final items = await _listService.getItemsByLevel(level);
-        final count = items.length;
-
-        // Update count with proper formatting
-        String formattedCount;
-        if (count >= 1000) {
-          formattedCount = '${(count / 1000).toStringAsFixed(1)}K';
-        } else {
-          formattedCount = count.toString();
-        }
-
-        // Update the menu item
-        menuItems[i] = {...item, 'count': formattedCount};
+  void _setupAutoRefresh() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isFirstLoad) {
+        _focusNode.requestFocus();
+        _isFirstLoad = false;
       }
-    } catch (e) {
-      print('Error loading counts: $e');
-      // Keep default counts on error
+
+      // Listen to bottom navigation changes
+      ever(_navbarController.currentIndex, (int index) {
+        if (index == 0) {
+          _focusNode.requestFocus();
+          _homeController.loadCounts();
+        }
+      });
+    });
+  }
+
+  void _onFocusChange() {
+    if (_focusNode.hasFocus) {
+      _homeController.loadCounts();
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> pages = [_buildHomePage(), const ProfilePage()];
-
-    return Scaffold(
-      backgroundColor: AppTheme.surfaceVariant,
-      body: PageView(
-        controller: navbarController.pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        children: pages,
-      ),
-      extendBody: true,
-      bottomNavigationBar: const BottomNavbar(),
-    );
-  }
-
-  Widget _buildHomePage() {
-    return SafeArea(
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [_buildAppBar(), _buildModulesSection()],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar() {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AMAZESYS',
-                  style: AppTypography.h3.copyWith(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Management',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppTheme.neutral500,
-                  ),
-                ),
-              ],
-            ),
-            _buildProfileButton(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileButton() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.card,
-        border: Border.all(color: AppTheme.border, width: 1),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: () => _showProfileMenu(context),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: AppTheme.primarySurface,
-                  child: Text(
-                    (authController.currentUser?.name?.isNotEmpty == true
-                            ? authController.currentUser!.name!.substring(0, 1)
-                            : 'U')
-                        .toUpperCase(),
-                    style: AppTypography.labelMedium.copyWith(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModulesSection() {
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [],
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                // Calculate optimal card dimensions based on screen width
-                const double minCardWidth = 160.0;
-                const double maxCardWidth = 200.0;
-                final double availableWidth = constraints.maxWidth;
-                final int crossAxisCount = (availableWidth / minCardWidth)
-                    .floor()
-                    .clamp(2, 3);
-                final double cardWidth =
-                    (availableWidth - (AppSpacing.md * (crossAxisCount - 1))) /
-                    crossAxisCount;
-                final double cardHeight =
-                    cardWidth * 1.2; // Better aspect ratio for content
-
-                return Obx(
-                  () => GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: AppSpacing.md,
-                      mainAxisSpacing: AppSpacing.md,
-                      childAspectRatio: cardWidth / cardHeight,
-                    ),
-                    itemCount: menuItems.length,
-                    itemBuilder: (context, index) {
-                      return _buildModuleCard(menuItems[index], index);
-                    },
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildModuleCard(Map<String, dynamic> item, int index) {
-    return TweenAnimationBuilder(
-      duration: Duration(milliseconds: 400 + (index * 100)),
-      tween: Tween<double>(begin: 0.0, end: 1.0),
-      builder: (context, double value, child) {
-        return Transform.scale(
-          scale: 0.8 + (0.2 * value),
-          child: Opacity(
-            opacity: value,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(AppRadius.xxl),
-                boxShadow: AppShadows.card,
-                border: Border.all(color: AppTheme.border, width: 1),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.xxl),
-                  onTap: () => _handleModuleTap(item),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Header with icon and count
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Icon container - flexible size
-                            Flexible(
-                              flex: 1,
-                              child: Container(
-                                padding: const EdgeInsets.all(AppSpacing.md),
-                                decoration: BoxDecoration(
-                                  color: (item['color'] as Color).withOpacity(
-                                    0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.lg,
-                                  ),
-                                ),
-                                child: Icon(
-                                  item['icon'] as IconData,
-                                  color: item['color'] as Color,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            // Count badge - constrained
-                            Container(
-                              constraints: const BoxConstraints(
-                                minWidth: 32,
-                                maxWidth: 60,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm,
-                                vertical: AppSpacing.xs,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceContainer,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.full,
-                                ),
-                                border: Border.all(
-                                  color: AppTheme.borderLight,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                item['count'],
-                                style: AppTypography.labelSmall.copyWith(
-                                  color: AppTheme.neutral600,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // Spacing
-                        const SizedBox(height: AppSpacing.lg),
-
-                        // Title - constrained height
-                        Flexible(
-                          child: Text(
-                            item['name'],
-                            style: AppTypography.h4.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _handleModuleTap(Map<String, dynamic> item) {
-    final level = ListLevel.values.firstWhere((e) => e.name == item['level']);
-    Get.toNamed(Routes.CATEGORY_LIST, arguments: level);
-  }
-
-  void _showProfileMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) => Container(
-            decoration: const BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(AppRadius.xxl),
-                topRight: Radius.circular(AppRadius.xxl),
-              ),
-            ),
-            child: SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppTheme.neutral300,
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: AppSpacing.md),
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: AppTheme.primarySurface,
-                          child: Text(
-                            (authController.currentUser?.name?.isNotEmpty ==
-                                        true
-                                    ? authController.currentUser!.name!
-                                        .substring(0, 1)
-                                    : 'U')
-                                .toUpperCase(),
-                            style: AppTypography.h3.copyWith(
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Obx(
-                          () => Text(
-                            authController.currentUser?.name ?? 'User',
-                            style: AppTypography.h4.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Obx(
-                          () => Text(
-                            authController.currentUser?.username ?? '',
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppTheme.neutral500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _showLogoutDialog(context);
-                            },
-                            icon: const Icon(Icons.logout_outlined),
-                            label: const Text('Sign Out'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.error,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.lg,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.xxl),
-          ),
-          title: Text(
-            'Sign Out',
-            style: AppTypography.h3.copyWith(fontWeight: FontWeight.w600),
-          ),
-          content: Text(
-            'Are you sure you want to sign out of your account?',
-            style: AppTypography.bodyLarge.copyWith(color: AppTheme.neutral600),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.neutral500,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
-                ),
-              ),
-              child: Text('Cancel', style: AppTypography.buttonMedium),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                authController.logout();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.error,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.md,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                ),
-              ),
-              child: Text('Sign Out', style: AppTypography.buttonMedium),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

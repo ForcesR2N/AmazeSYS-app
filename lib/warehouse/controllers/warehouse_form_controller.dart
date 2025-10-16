@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/warehouse_detail_model.dart';
 import '../services/warehouse_service.dart';
+import '../../branch/services/branch_service.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/custom_snackbar.dart';
 import '../../core/widgets/location_form_widget.dart';
@@ -42,7 +43,10 @@ class WarehouseFormController extends BaseFormController {
     _warehouseService = Get.find<WarehouseService>();
 
     // Initialize location controller with unique tag
-    _locationController = Get.put(LocationFormController(), tag: 'warehouse_location');
+    _locationController = Get.put(
+      LocationFormController(),
+      tag: 'warehouse_location',
+    );
 
     _initializeFormData();
     _setupFormListeners();
@@ -74,12 +78,36 @@ class WarehouseFormController extends BaseFormController {
     ever(_locationController.selectedZipcode, (_) => markFormAsDirty());
   }
 
-
   void _initializeFormData() {
     final arguments = Get.arguments as Map<String, dynamic>?;
+    String? warehouseId = arguments?['id'] as String?;
 
-    if (arguments != null && arguments['warehouse'] != null) {
-      _existingWarehouse = arguments['warehouse'] as WarehouseDetail;
+    if (warehouseId != null) {
+      _loadWarehouseData(warehouseId);
+    } else if (arguments?['warehouse'] != null) {
+      _existingWarehouse = arguments!['warehouse'] as WarehouseDetail;
+      _populateFormWithExistingData();
+    }
+  }
+
+  Future<void> _loadWarehouseData(String warehouseId) async {
+    try {
+      isLoading.value = true;
+      final warehouse = await _warehouseService.getWarehouseDetail(warehouseId);
+      if (warehouse != null) {
+        _existingWarehouse = warehouse;
+        await _populateFormWithExistingData();
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Error loading warehouse data',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -109,9 +137,19 @@ class WarehouseFormController extends BaseFormController {
 
   Future<void> _loadBranches() async {
     try {
-      // You can implement branch endpoint later or use fallback data
-      _setFallbackBranches();
+      final branchService = Get.find<BranchService>();
+      final branchList = await branchService.getBranches();
+
+      if (branchList.isNotEmpty) {
+        branches.value =
+            branchList
+                .map((branch) => {'id': branch.id, 'name': branch.name})
+                .toList();
+      } else {
+        _setFallbackBranches();
+      }
     } catch (e) {
+      print('Error loading branches: $e');
       _setFallbackBranches();
     }
 
@@ -122,12 +160,20 @@ class WarehouseFormController extends BaseFormController {
   }
 
   void _setFallbackBranches() {
-    branches.value = [
-      {'id': '1', 'name': 'Head Office'},
-      {'id': '2', 'name': 'Branch A'},
-      {'id': '3', 'name': 'Branch B'},
-      {'id': '4', 'name': 'Branch C'},
-    ];
+    if (_existingWarehouse != null) {
+      // In edit mode, make sure we have the actual branch in the list
+      branches.value = [
+        {'id': _existingWarehouse!.branchId, 'name': 'Selected Branch'},
+      ];
+    } else {
+      // In create mode, use test data
+      branches.value = [
+        {'id': '1', 'name': 'Head Office'},
+        {'id': '2', 'name': 'Branch A'},
+        {'id': '3', 'name': 'Branch B'},
+        {'id': '4', 'name': 'Branch C'},
+      ];
+    }
   }
 
   @override
@@ -158,28 +204,56 @@ class WarehouseFormController extends BaseFormController {
 
       // DEBUG: Log location data being sent
       print('📍 Location Data: $locationData');
-      print('📍 Province: ${_locationController.selectedProvince.value?.id} - ${_locationController.selectedProvince.value?.name}');
-      print('📍 District: ${_locationController.selectedDistrict.value?.id} - ${_locationController.selectedDistrict.value?.name}');
-      print('📍 Subdistrict: ${_locationController.selectedSubdistrict.value?.id} - ${_locationController.selectedSubdistrict.value?.name}');
-      print('📍 Ward: ${_locationController.selectedWard.value?.id} - ${_locationController.selectedWard.value?.name}');
-      print('📍 Zipcode: ${_locationController.selectedZipcode.value?.id} - ${_locationController.selectedZipcode.value?.code}');
+      print(
+        '📍 Province: ${_locationController.selectedProvince.value?.id} - ${_locationController.selectedProvince.value?.name}',
+      );
+      print(
+        '📍 District: ${_locationController.selectedDistrict.value?.id} - ${_locationController.selectedDistrict.value?.name}',
+      );
+      print(
+        '📍 Subdistrict: ${_locationController.selectedSubdistrict.value?.id} - ${_locationController.selectedSubdistrict.value?.name}',
+      );
+      print(
+        '📍 Ward: ${_locationController.selectedWard.value?.id} - ${_locationController.selectedWard.value?.name}',
+      );
+      print(
+        '📍 Zipcode: ${_locationController.selectedZipcode.value?.id} - ${_locationController.selectedZipcode.value?.code}',
+      );
 
       final warehouseData = {
         'name': nameController.text.trim(),
-        'code_id': codeController.text.trim().isNotEmpty ? codeController.text.trim() : null,
+        'code_id':
+            codeController.text.trim().isNotEmpty
+                ? codeController.text.trim()
+                : null,
         'description': descriptionController.text.trim(),
         'branch_id': selectedBranchId.value,
-        'address': addressController.text.trim().isNotEmpty ? addressController.text.trim() : null,
-        'pic_name': picNameController.text.trim().isNotEmpty ? picNameController.text.trim() : null,
-        'pic_contact': picContactController.text.trim().isNotEmpty ? picContactController.text.trim() : null,
-        'note': noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
+        'address':
+            addressController.text.trim().isNotEmpty
+                ? addressController.text.trim()
+                : null,
+        'pic_name':
+            picNameController.text.trim().isNotEmpty
+                ? picNameController.text.trim()
+                : null,
+        'pic_contact':
+            picContactController.text.trim().isNotEmpty
+                ? picContactController.text.trim()
+                : null,
+        'note':
+            noteController.text.trim().isNotEmpty
+                ? noteController.text.trim()
+                : null,
         ...locationData,
       };
 
       print('📦 Warehouse Data being sent: $warehouseData');
 
       if (isEditMode) {
-        await _warehouseService.updateWarehouse(_existingWarehouse!.id, warehouseData);
+        await _warehouseService.updateWarehouse(
+          _existingWarehouse!.id,
+          warehouseData,
+        );
       } else {
         await _warehouseService.createWarehouse(warehouseData);
       }

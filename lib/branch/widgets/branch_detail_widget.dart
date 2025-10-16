@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import '../models/branch_detail_model.dart';
+import '../services/branch_service.dart';
+import '../controllers/branch_form_controller.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/crud_action_bar.dart';
+import '../../core/widgets/custom_snackbar.dart';
+import '../../list-pages/controllers/list_controller.dart';
 
 class BranchDetailWidget extends StatelessWidget {
   final BranchDetail detail;
@@ -15,7 +21,7 @@ class BranchDetailWidget extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _buildDetailSections(),
+        children: [..._buildDetailSections(), _buildCrudActions()],
       ),
     );
   }
@@ -190,6 +196,67 @@ class BranchDetailWidget extends StatelessWidget {
   bool _hasContactInfo() {
     return (detail.picName?.isNotEmpty == true) ||
         (detail.picContact?.isNotEmpty == true);
+  }
+
+  Widget _buildCrudActions() {
+    return CrudActionBar(
+      entityName: 'Branch',
+      itemName: detail.name,
+      onEdit: () => _handleEdit(),
+      onDelete: () => _handleDelete(),
+      showCreate: false,
+    );
+  }
+
+  void _handleEdit() async {
+    if (Get.isRegistered<BranchFormController>()) {
+      Get.delete<BranchFormController>();
+    }
+
+    final result = await Get.toNamed(
+      '/branch-form',
+      arguments: {'branch': detail},
+    );
+
+    // If branch was updated successfully, show feedback and refresh
+    if (result == true) {
+      CustomSnackbar.success(
+        message: 'Branch information has been updated successfully',
+      );
+
+      // Refresh the current view to show updated data
+      try {
+        final listController = Get.find<ListController>();
+        await listController.refresh();
+      } catch (e) {
+        // List controller not found, that's okay
+      }
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    try {
+      final branchService = Get.find<BranchService>();
+      final success = await branchService.deleteBranch(detail.id);
+
+      if (success) {
+        // Show success feedback
+        CustomSnackbar.success(
+          message: '${detail.name} has been deleted successfully',
+        );
+
+        // Handle post-delete navigation and refresh
+        try {
+          final listController = Get.find<ListController>();
+          await listController.handleDataModification(itemDeleted: true);
+        } catch (e) {
+          // If list controller not found, just go back
+          Get.back(result: true);
+        }
+      }
+    } catch (e) {
+      CustomSnackbar.error(message: 'Failed to delete branch: ${e.toString()}');
+    }
   }
 
   String _formatDateTime(DateTime dateTime) {

@@ -36,13 +36,9 @@ class BottomNavbar extends StatelessWidget {
           itemLabel: 'Home',
         ),
         BottomBarItem(
-          inActiveItem: Icon(Icons.table_chart_outlined, size: 24),
-          activeItem: Icon(
-            Icons.table_chart,
-            color: AppTheme.surface,
-            size: 24,
-          ),
-          itemLabel: 'Table',
+          inActiveItem: Icon(Icons.favorite_border_outlined, size: 24),
+          activeItem: Icon(Icons.favorite, color: AppTheme.surface, size: 24),
+          itemLabel: 'Favorites',
         ),
         BottomBarItem(
           inActiveItem: Icon(

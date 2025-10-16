@@ -4,6 +4,8 @@ import '../controllers/warehouse_form_controller.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/location_form_widget.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/form_theme.dart';
+import '../../core/theme/form_theme.dart';
 
 class WarehouseFormPage extends StatelessWidget {
   const WarehouseFormPage({super.key});
@@ -75,22 +77,29 @@ class WarehouseFormPage extends StatelessWidget {
           label: 'Branch',
           isRequired: true,
           child: Obx(
-            () => DropdownButtonFormField<String>(
-              value: controller.selectedBranchId.value.isEmpty
-                  ? null
-                  : controller.selectedBranchId.value,
-              decoration: buildInputDecoration(
-                hintText: 'Select branch',
-                prefixIcon: Icons.business,
-              ),
-              items: controller.branches
-                  .map(
-                    (branch) => DropdownMenuItem<String>(
-                      value: branch['id'].toString(),
-                      child: Text(branch['name'].toString()),
-                    ),
-                  )
-                  .toList(),
+            () => FormTheme.buildStyledDropdown<String>(
+              value:
+                  controller.selectedBranchId.value.isEmpty
+                      ? null
+                      : controller.selectedBranchId.value,
+              hintText: 'Select branch',
+              prefixIcon: Icons.business,
+              items:
+                  controller.branches
+                      .map(
+                        (branch) => DropdownMenuItem<String>(
+                          value: branch['id'].toString(),
+                          child: Text(
+                            branch['name'].toString(),
+                            style: TextStyle(
+                              color: AppTheme.neutral800,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
               onChanged: (value) {
                 if (value != null) {
                   controller.selectedBranchId.value = value;

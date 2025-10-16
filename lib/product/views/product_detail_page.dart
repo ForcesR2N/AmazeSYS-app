@@ -13,8 +13,10 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ProductDetailController controller = Get.put(ProductDetailController());
-    
+    final ProductDetailController controller = Get.put(
+      ProductDetailController(),
+    );
+
     return WillPopScope(
       onWillPop: () async {
         controller.navigateBack();
@@ -27,12 +29,14 @@ class ProductDetailPage extends StatelessWidget {
 
 class _ProductDetailPageContent extends StatefulWidget {
   @override
-  State<_ProductDetailPageContent> createState() => _ProductDetailPageContentState();
+  State<_ProductDetailPageContent> createState() =>
+      _ProductDetailPageContentState();
 }
 
 class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
     with TickerProviderStateMixin {
-  final ProductDetailController controller = Get.find<ProductDetailController>();
+  final ProductDetailController controller =
+      Get.find<ProductDetailController>();
 
   late AnimationController _heroController;
   late AnimationController _contentController;
@@ -83,7 +87,6 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,6 +126,34 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
         ),
       ),
       actions: [
+        Obx(() => Container(
+          margin: const EdgeInsets.only(right: AppSpacing.sm),
+          decoration: BoxDecoration(
+            color: AppTheme.surface.withOpacity(0.9),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: AppShadows.card,
+            border: Border.all(color: AppTheme.border, width: 1),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              onTap: () => controller.toggleFavorite(),
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                child: Icon(
+                  controller.isFavorite.value
+                      ? Icons.favorite
+                      : Icons.favorite_outline,
+                  size: 20,
+                  color: controller.isFavorite.value
+                      ? AppTheme.error
+                      : AppTheme.neutral700,
+                ),
+              ),
+            ),
+          ),
+        )),
         Container(
           margin: const EdgeInsets.only(right: AppSpacing.md),
           decoration: BoxDecoration(
@@ -382,7 +413,8 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
               border: Border.all(color: AppTheme.border, width: 1),
             ),
             child: Text(
-              controller.productDetail.value?.description ?? controller.product.description,
+              controller.productDetail.value?.description ??
+                  controller.product.description,
               style: AppTypography.bodyLarge.copyWith(
                 color: AppTheme.neutral700,
                 height: 1.6,
@@ -426,7 +458,8 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
                 _buildDetailRow('Availability', 'Available', false),
                 _buildDetailRow(
                   'SKU',
-                  controller.productDetail.value?.codeId ?? controller.product.code,
+                  controller.productDetail.value?.codeId ??
+                      controller.product.code,
                   false,
                 ),
                 if (controller.productDetail.value?.warehouseId != null)
@@ -436,7 +469,11 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
                     false,
                   ),
                 if (controller.productDetail.value?.branchId != null)
-                  _buildDetailRow('Branch ID', controller.productDetail.value!.branchId, false),
+                  _buildDetailRow(
+                    'Branch ID',
+                    controller.productDetail.value!.branchId,
+                    false,
+                  ),
               ],
             ),
           ),
@@ -516,18 +553,34 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
       margin: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildSecondaryButton(
-                  'Add to Wishlist',
-                  Icons.favorite_outline,
-                  () => _showWishlistSnackbar(),
+          Obx(() => SizedBox(
+            height: 48,
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => controller.toggleFavorite(),
+              icon: Icon(
+                controller.isFavorite.value
+                    ? Icons.favorite
+                    : Icons.favorite_outline,
+                size: 18,
+              ),
+              label: Text(
+                controller.isFavorite.value
+                    ? 'Remove from Favorites'
+                    : 'Add to Favorites',
+                style: AppTypography.buttonMedium,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: controller.isFavorite.value
+                    ? AppTheme.error
+                    : AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-            ],
-          ),
+            ),
+          )),
         ],
       ),
     );
@@ -642,9 +695,7 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
     return GestureDetector(
       onTap: () {
         Get.back();
-        CustomSnackbar.success(
-          message: 'Product shared via $label',
-        );
+        CustomSnackbar.success(message: 'Product shared via $label');
       },
       child: Column(
         children: [
@@ -671,11 +722,6 @@ class _ProductDetailPageContentState extends State<_ProductDetailPageContent>
     );
   }
 
-  void _showWishlistSnackbar() {
-    CustomSnackbar.success(
-      message: 'Product has been saved to your wishlist',
-    );
-  }
 
   Widget _buildLoadingState() {
     return Container(

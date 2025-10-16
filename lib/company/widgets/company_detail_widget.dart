@@ -101,7 +101,7 @@ class CompanyDetailWidget extends StatelessWidget {
           _buildInfoRow('Name', detail.name),
           _buildInfoRow('Code', detail.code),
           _buildInfoRow('Description', detail.description),
-          _buildInfoRow('Category', detail.categoryId),
+          _buildInfoRow('Category', detail.categoryName ?? detail.categoryId),
           if (detail.note?.isNotEmpty == true)
             _buildInfoRow('Notes', detail.note!),
           _buildInfoRow('Street Address', detail.fullAddress),

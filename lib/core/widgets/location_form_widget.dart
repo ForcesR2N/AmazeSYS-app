@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/dropdown_search_theme.dart';
 import 'base_form_page.dart';
 
 /// Controller for location form widget
@@ -225,7 +226,9 @@ class LocationFormController extends GetxController {
 
         // 2. Set district
         if (districtId != null && districts.isNotEmpty) {
-          final district = districts.firstWhereOrNull((d) => d.id == districtId);
+          final district = districts.firstWhereOrNull(
+            (d) => d.id == districtId,
+          );
           if (district != null) {
             selectedDistrict.value = district;
             _districts.value = districts;
@@ -264,7 +267,7 @@ class LocationFormController extends GetxController {
         }
       }
     } catch (e) {
-      print('⚠️ Error loading existing location: $e');
+      print('Error loading existing location: $e');
       // Silent fail - don't block form from opening
     }
   }
@@ -319,37 +322,26 @@ class LocationFormWidget extends StatelessWidget {
               onChanged: controller.onProvinceChanged,
               compareFn:
                   (Province? item1, Province? item2) => item1?.id == item2?.id,
-              decoratorProps: DropDownDecoratorProps(
-                decoration: buildInputDecoration(
-                  hintText: 'Type to search province...',
-                  prefixIcon: Icons.map,
-                ),
-              ),
-              popupProps: PopupProps.menu(
-                showSearchBox: true,
-                searchFieldProps: TextFieldProps(
-                  decoration: InputDecoration(
-                    hintText: 'Search province...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+              dropdownBuilder: (context, item) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    item?.name ?? '',
+                    style: TextStyle(
+                      color: AppTheme.neutral800,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                emptyBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: Text('No provinces found'),
-                      ),
-                    ),
-                loadingBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
+                );
+              },
+              decoratorProps: DropdownSearchTheme.getDecoratorProps(
+                hintText: 'Type to search province...',
+                prefixIcon: Icons.map,
+              ),
+              popupProps: DropdownSearchTheme.getPopupProps<Province>(
+                searchHintText: 'Search province...',
+                emptyText: 'No provinces found',
               ),
             ),
           ),
@@ -369,40 +361,29 @@ class LocationFormWidget extends StatelessWidget {
               onChanged: controller.onDistrictChanged,
               compareFn:
                   (District? item1, District? item2) => item1?.id == item2?.id,
-              decoratorProps: DropDownDecoratorProps(
-                decoration: buildInputDecoration(
-                  hintText:
-                      controller.selectedProvince.value == null
-                          ? 'Select province first'
-                          : 'Type to search district...',
-                  prefixIcon: Icons.location_city,
-                ),
-              ),
-              popupProps: PopupProps.menu(
-                showSearchBox: true,
-                searchFieldProps: TextFieldProps(
-                  decoration: InputDecoration(
-                    hintText: 'Search district...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+              dropdownBuilder: (context, item) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    item?.name ?? '',
+                    style: TextStyle(
+                      color: AppTheme.neutral800,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                emptyBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: Text('No districts found'),
-                      ),
-                    ),
-                loadingBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
+                );
+              },
+              decoratorProps: DropdownSearchTheme.getDecoratorProps(
+                hintText:
+                    controller.selectedProvince.value == null
+                        ? 'Select province first'
+                        : 'Type to search district...',
+                prefixIcon: Icons.location_city,
+              ),
+              popupProps: DropdownSearchTheme.getPopupProps<District>(
+                searchHintText: 'Search district...',
+                emptyText: 'No districts found',
               ),
             ),
           ),
@@ -423,40 +404,28 @@ class LocationFormWidget extends StatelessWidget {
               compareFn:
                   (Subdistrict? item1, Subdistrict? item2) =>
                       item1?.id == item2?.id,
-              decoratorProps: DropDownDecoratorProps(
-                decoration: buildInputDecoration(
-                  hintText:
-                      controller.selectedDistrict.value == null
-                          ? 'Select district first'
-                          : 'Type to search subdistrict...',
-                  prefixIcon: Icons.location_on_outlined,
-                ),
-              ),
-              popupProps: PopupProps.menu(
-                showSearchBox: true,
-                searchFieldProps: TextFieldProps(
-                  decoration: InputDecoration(
-                    hintText: 'Search subdistrict...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+              dropdownBuilder: (context, item) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    item?.name ?? '',
+                    style: TextStyle(
+                      color: AppTheme.neutral800,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                emptyBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: Text('No subdistricts found'),
-                      ),
-                    ),
-                loadingBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
+                );
+              },
+              decoratorProps: DropdownSearchTheme.getDecoratorProps(
+                hintText: controller.selectedDistrict.value == null
+                    ? 'Select district first'
+                    : 'Type to search subdistrict...',
+                prefixIcon: Icons.location_on_outlined,
+              ),
+              popupProps: DropdownSearchTheme.getPopupProps<Subdistrict>(
+                searchHintText: 'Search subdistrict...',
+                emptyText: 'No subdistricts found',
               ),
             ),
           ),
@@ -475,40 +444,28 @@ class LocationFormWidget extends StatelessWidget {
               selectedItem: controller.selectedWard.value,
               onChanged: controller.onWardChanged,
               compareFn: (Ward? item1, Ward? item2) => item1?.id == item2?.id,
-              decoratorProps: DropDownDecoratorProps(
-                decoration: buildInputDecoration(
-                  hintText:
-                      controller.selectedSubdistrict.value == null
-                          ? 'Select subdistrict first'
-                          : 'Type to search ward...',
-                  prefixIcon: Icons.home_work_outlined,
-                ),
-              ),
-              popupProps: PopupProps.menu(
-                showSearchBox: true,
-                searchFieldProps: TextFieldProps(
-                  decoration: InputDecoration(
-                    hintText: 'Search ward...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+              dropdownBuilder: (context, item) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    item?.name ?? '',
+                    style: TextStyle(
+                      color: AppTheme.neutral800,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                emptyBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: Text('No wards found'),
-                      ),
-                    ),
-                loadingBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
+                );
+              },
+              decoratorProps: DropdownSearchTheme.getDecoratorProps(
+                hintText: controller.selectedSubdistrict.value == null
+                    ? 'Select subdistrict first'
+                    : 'Type to search ward...',
+                prefixIcon: Icons.home_work_outlined,
+              ),
+              popupProps: DropdownSearchTheme.getPopupProps<Ward>(
+                searchHintText: 'Search ward...',
+                emptyText: 'No wards found',
               ),
             ),
           ),
@@ -528,40 +485,29 @@ class LocationFormWidget extends StatelessWidget {
               onChanged: controller.onZipcodeChanged,
               compareFn:
                   (Zipcode? item1, Zipcode? item2) => item1?.id == item2?.id,
-              decoratorProps: DropDownDecoratorProps(
-                decoration: buildInputDecoration(
-                  hintText:
-                      controller.selectedWard.value == null
-                          ? 'Select ward first'
-                          : 'Type to search postal code...',
-                  prefixIcon: Icons.local_post_office,
-                ),
-              ),
-              popupProps: PopupProps.menu(
-                showSearchBox: true,
-                searchFieldProps: TextFieldProps(
-                  decoration: InputDecoration(
-                    hintText: 'Search postal code...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
+              dropdownBuilder: (context, item) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    item?.code ?? '',
+                    style: TextStyle(
+                      color: AppTheme.neutral800,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ),
-                emptyBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: Text('No postal codes found'),
-                      ),
-                    ),
-                loadingBuilder:
-                    (context, searchEntry) => const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
+                );
+              },
+              decoratorProps: DropdownSearchTheme.getDecoratorProps(
+                hintText:
+                    controller.selectedWard.value == null
+                        ? 'Select ward first'
+                        : 'Type to search postal code...',
+                prefixIcon: Icons.local_post_office,
+              ),
+              popupProps: DropdownSearchTheme.getPopupProps<Zipcode>(
+                searchHintText: 'Search postal code...',
+                emptyText: 'No postal codes found',
               ),
             ),
           ),

@@ -275,7 +275,8 @@ class ListController extends GetxController {
   /// Handle data modifications and refresh accordingly
   Future<void> handleDataModification({bool itemDeleted = false}) async {
     if (itemDeleted && selectedItem.value != null) {
-      // If current item was deleted, go back to parent level
+      // Double back navigation after deletion
+      await navigateBack();
       await navigateBack();
     } else {
       // Otherwise just refresh current data

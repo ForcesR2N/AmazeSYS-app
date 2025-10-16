@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:get/get.dart';
 import '../models/warehouse_detail_model.dart';
+import '../services/warehouse_service.dart';
+import '../controllers/warehouse_form_controller.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/crud_action_bar.dart';
+import '../../core/widgets/custom_snackbar.dart';
+import '../../list-pages/controllers/list_controller.dart';
 
 class WarehouseDetailWidget extends StatelessWidget {
   final WarehouseDetail detail;
@@ -15,7 +21,7 @@ class WarehouseDetailWidget extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _buildDetailSections(),
+        children: [..._buildDetailSections(), _buildCrudActions()],
       ),
     );
   }
@@ -190,6 +196,69 @@ class WarehouseDetailWidget extends StatelessWidget {
   bool _hasContactInfo() {
     return (detail.picName?.isNotEmpty == true) ||
         (detail.picContact?.isNotEmpty == true);
+  }
+
+  Widget _buildCrudActions() {
+    return CrudActionBar(
+      entityName: 'Warehouse',
+      itemName: detail.name,
+      onEdit: () => _handleEdit(),
+      onDelete: () => _handleDelete(),
+      showCreate: false,
+    );
+  }
+
+  void _handleEdit() async {
+    if (Get.isRegistered<WarehouseFormController>()) {
+      Get.delete<WarehouseFormController>();
+    }
+
+    final result = await Get.toNamed(
+      '/warehouse-form',
+      arguments: {'warehouse': detail},
+    );
+
+    // If warehouse was updated successfully, show feedback and refresh
+    if (result == true) {
+      CustomSnackbar.success(
+        message: 'Warehouse information has been updated successfully',
+      );
+
+      // Refresh the current view to show updated data
+      try {
+        final listController = Get.find<ListController>();
+        await listController.refresh();
+      } catch (e) {
+        // List controller not found, that's okay
+      }
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    try {
+      final warehouseService = Get.find<WarehouseService>();
+      final success = await warehouseService.deleteWarehouse(detail.id);
+
+      if (success) {
+        // Show success feedback
+        CustomSnackbar.success(
+          message: '${detail.name} has been deleted successfully',
+        );
+
+        // Handle post-delete navigation and refresh
+        try {
+          final listController = Get.find<ListController>();
+          await listController.handleDataModification(itemDeleted: true);
+        } catch (e) {
+          // If list controller not found, just go back
+          Get.back(result: true);
+        }
+      }
+    } catch (e) {
+      CustomSnackbar.error(
+        message: 'Failed to delete warehouse: ${e.toString()}',
+      );
+    }
   }
 
   String _formatDateTime(DateTime dateTime) {

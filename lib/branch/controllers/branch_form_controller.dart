@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/branch_detail_model.dart';
 import '../services/branch_service.dart';
+import '../../list-pages/services/list_service.dart';
+import '../../list-pages/models/list_item.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/custom_snackbar.dart';
 import '../../core/widgets/location_form_widget.dart';
@@ -41,7 +43,10 @@ class BranchFormController extends BaseFormController {
     _branchService = Get.find<BranchService>();
 
     // Initialize location controller with unique tag
-    _locationController = Get.put(LocationFormController(), tag: 'branch_location');
+    _locationController = Get.put(
+      LocationFormController(),
+      tag: 'branch_location',
+    );
 
     _initializeFormData();
     _setupFormListeners();
@@ -73,12 +78,36 @@ class BranchFormController extends BaseFormController {
     ever(_locationController.selectedZipcode, (_) => markFormAsDirty());
   }
 
-
   void _initializeFormData() {
     final arguments = Get.arguments as Map<String, dynamic>?;
+    String? branchId = arguments?['id'] as String?;
 
-    if (arguments != null && arguments['branch'] != null) {
-      _existingBranch = arguments['branch'] as BranchDetail;
+    if (branchId != null) {
+      _loadBranchData(branchId);
+    } else if (arguments?['branch'] != null) {
+      _existingBranch = arguments!['branch'] as BranchDetail;
+      _populateFormWithExistingData();
+    }
+  }
+
+  Future<void> _loadBranchData(String branchId) async {
+    try {
+      isLoading.value = true;
+      final branch = await _branchService.getBranchDetail(branchId);
+      if (branch != null) {
+        _existingBranch = branch;
+        await _populateFormWithExistingData();
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Error loading branch data',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -108,9 +137,19 @@ class BranchFormController extends BaseFormController {
 
   Future<void> _loadCompanies() async {
     try {
-      // You can implement company endpoint later or use fallback data
-      _setFallbackCompanies();
+      final listService = Get.find<ListService>();
+      final companyList = await listService.getItemsByLevel(ListLevel.company);
+
+      if (companyList.isNotEmpty) {
+        companies.value =
+            companyList
+                .map((company) => {'id': company.id, 'name': company.name})
+                .toList();
+      } else {
+        _setFallbackCompanies();
+      }
     } catch (e) {
+      print('Error loading companies: $e');
       _setFallbackCompanies();
     }
 
@@ -121,12 +160,20 @@ class BranchFormController extends BaseFormController {
   }
 
   void _setFallbackCompanies() {
-    companies.value = [
-      {'id': '1', 'name': 'Tech Corp'},
-      {'id': '2', 'name': 'Manufacturing Ltd'},
-      {'id': '3', 'name': 'Retail Solutions'},
-      {'id': '4', 'name': 'Services Inc'},
-    ];
+    if (_existingBranch != null) {
+      // In edit mode, make sure we have the actual company in the list
+      companies.value = [
+        {'id': _existingBranch!.companyId, 'name': 'Selected Company'},
+      ];
+    } else {
+      // In create mode, use test data
+      companies.value = [
+        {'id': '1', 'name': 'Tech Corp'},
+        {'id': '2', 'name': 'Manufacturing Ltd'},
+        {'id': '3', 'name': 'Retail Solutions'},
+        {'id': '4', 'name': 'Services Inc'},
+      ];
+    }
   }
 
   @override
@@ -155,27 +202,34 @@ class BranchFormController extends BaseFormController {
       // Get location data from location controller
       final locationData = _locationController.getLocationData();
 
-      // DEBUG: Log location data being sent
-      print('📍 Location Data: $locationData');
-      print('📍 Province: ${_locationController.selectedProvince.value?.id} - ${_locationController.selectedProvince.value?.name}');
-      print('📍 District: ${_locationController.selectedDistrict.value?.id} - ${_locationController.selectedDistrict.value?.name}');
-      print('📍 Subdistrict: ${_locationController.selectedSubdistrict.value?.id} - ${_locationController.selectedSubdistrict.value?.name}');
-      print('📍 Ward: ${_locationController.selectedWard.value?.id} - ${_locationController.selectedWard.value?.name}');
-      print('📍 Zipcode: ${_locationController.selectedZipcode.value?.id} - ${_locationController.selectedZipcode.value?.code}');
-
       final branchData = {
         'name': nameController.text.trim(),
-        'code_id': codeController.text.trim().isNotEmpty ? codeController.text.trim() : null,
+        'code_id':
+            codeController.text.trim().isNotEmpty
+                ? codeController.text.trim()
+                : null,
         'description': descriptionController.text.trim(),
         'company_id': selectedCompanyId.value,
-        'address': addressController.text.trim().isNotEmpty ? addressController.text.trim() : null,
-        'pic_name': picNameController.text.trim().isNotEmpty ? picNameController.text.trim() : null,
-        'pic_contact': picContactController.text.trim().isNotEmpty ? picContactController.text.trim() : null,
-        'note': noteController.text.trim().isNotEmpty ? noteController.text.trim() : null,
+        'address':
+            addressController.text.trim().isNotEmpty
+                ? addressController.text.trim()
+                : null,
+        'pic_name':
+            picNameController.text.trim().isNotEmpty
+                ? picNameController.text.trim()
+                : null,
+        'pic_contact':
+            picContactController.text.trim().isNotEmpty
+                ? picContactController.text.trim()
+                : null,
+        'note':
+            noteController.text.trim().isNotEmpty
+                ? noteController.text.trim()
+                : null,
         ...locationData,
       };
 
-      print('📦 Branch Data being sent: $branchData');
+      print('Branch Data being sent: $branchData');
 
       if (isEditMode) {
         await _branchService.updateBranch(_existingBranch!.id, branchData);
@@ -189,7 +243,7 @@ class BranchFormController extends BaseFormController {
     } catch (e) {
       errorMessage.value = 'Failed to save branch: ${e.toString()}';
       CustomSnackbar.error(message: errorMessage.value);
-    } finally{
+    } finally {
       isLoading.value = false;
     }
   }

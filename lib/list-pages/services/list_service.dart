@@ -10,8 +10,9 @@ class ListService {
     try {
       String endpoint = _getEndpointForLevel(level);
       final response = await _apiClient.get(endpoint);
-      
-      if (response.statusCode == ApiConstants.statusOk && response.data != null) {
+
+      if (response.statusCode == ApiConstants.statusOk &&
+          response.data != null) {
         final List<dynamic> items = response.data as List<dynamic>;
         return items.map((json) => _mapToListItem(json, level)).toList();
       } else {
@@ -38,12 +39,16 @@ class ListService {
   }
 
   /// Get children by specific level
-  Future<List<ListItem>> getChildrenByLevel(String parentId, ListLevel childLevel) async {
+  Future<List<ListItem>> getChildrenByLevel(
+    String parentId,
+    ListLevel childLevel,
+  ) async {
     try {
       String endpoint = _getEndpointForLevel(childLevel);
       final response = await _apiClient.get(endpoint);
-      
-      if (response.statusCode == ApiConstants.statusOk && response.data != null) {
+
+      if (response.statusCode == ApiConstants.statusOk &&
+          response.data != null) {
         final List<dynamic> items = response.data as List<dynamic>;
         return items
             .map((json) => _mapToListItem(json, childLevel))
@@ -59,19 +64,26 @@ class ListService {
   }
 
   /// Search items with query
-  Future<List<ListItem>> searchItems(String query, ListLevel level, [String? parentId]) async {
+  Future<List<ListItem>> searchItems(
+    String query,
+    ListLevel level, [
+    String? parentId,
+  ]) async {
     try {
       String endpoint = _getEndpointForLevel(level);
       final response = await _apiClient.get(endpoint);
-      
-      if (response.statusCode == ApiConstants.statusOk && response.data != null) {
+
+      if (response.statusCode == ApiConstants.statusOk &&
+          response.data != null) {
         final List<dynamic> items = response.data as List<dynamic>;
         return items
             .map((json) => _mapToListItem(json, level))
-            .where((item) => 
-                (parentId == null || _matchesParent(item, parentId, level)) &&
-                (item.name.toLowerCase().contains(query.toLowerCase()) ||
-                 item.code.toLowerCase().contains(query.toLowerCase())))
+            .where(
+              (item) =>
+                  (parentId == null || _matchesParent(item, parentId, level)) &&
+                  (item.name.toLowerCase().contains(query.toLowerCase()) ||
+                      item.code.toLowerCase().contains(query.toLowerCase())),
+            )
             .toList();
       } else {
         return [];
@@ -83,19 +95,34 @@ class ListService {
   }
 
   /// Get single item by ID
-  Future<ListItem?> getItemById(String id) async {
+  Future<ListItem?> getItemById(String id, [ListLevel? specificLevel]) async {
     try {
-      // Try each level endpoint to find the item
-      for (ListLevel level in ListLevel.values) {
-        String endpoint = '${_getEndpointForLevel(level)}/$id';
-        try {
-          final response = await _apiClient.get(endpoint);
-          if (response.statusCode == ApiConstants.statusOk && response.data != null) {
-            return _mapToListItem(response.data as Map<String, dynamic>, level);
+      if (specificLevel != null) {
+        String endpoint = '${_getEndpointForLevel(specificLevel)}/$id';
+        final response = await _apiClient.get(endpoint);
+        if (response.statusCode == ApiConstants.statusOk &&
+            response.data != null) {
+          return _mapToListItem(
+            response.data as Map<String, dynamic>,
+            specificLevel,
+          );
+        }
+        return null;
+      } else {
+        for (ListLevel level in ListLevel.values) {
+          String endpoint = '${_getEndpointForLevel(level)}/$id';
+          try {
+            final response = await _apiClient.get(endpoint);
+            if (response.statusCode == ApiConstants.statusOk &&
+                response.data != null) {
+              return _mapToListItem(
+                response.data as Map<String, dynamic>,
+                level,
+              );
+            }
+          } catch (e) {
+            continue;
           }
-        } catch (e) {
-          // Continue to next level
-          continue;
         }
       }
       return null;

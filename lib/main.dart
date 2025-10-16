@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'routes/app_pages.dart';
 import 'auth/controllers/auth_controller.dart';
 import 'core/services/navigation_stack_manager.dart';
 import 'core/services/location_service.dart';
 import 'company/services/company_service.dart';
+import 'favorites/services/favorites_service.dart';
 import 'core/storage/token_storage.dart';
 import 'core/api/api_client.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize storage systems
+  await GetStorage.init();
   await TokenStorage.instance.initialize();
   ApiClient.instance.initialize();
 
@@ -22,6 +27,7 @@ void main() async {
 
   // Initialize entity services globally
   Get.put(CompanyService(), permanent: true);
+  Get.put(FavoritesService(), permanent: true);
 
   runApp(MyApp());
 }

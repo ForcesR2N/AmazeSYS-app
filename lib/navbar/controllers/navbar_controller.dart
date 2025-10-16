@@ -6,7 +6,7 @@ import 'package:get/get.dart';
 class NavbarController extends GetxController {
   late PageController pageController;
   late NotchBottomBarController notchBottomBarController;
-  
+
   var currentIndex = 0.obs;
 
   @override
@@ -26,5 +26,6 @@ class NavbarController extends GetxController {
     log('Navigating to page $index');
     currentIndex.value = index;
     pageController.jumpToPage(index);
+    notchBottomBarController.jumpTo(index);
   }
 }

@@ -5,17 +5,40 @@ import '../models/list_item.dart';
 import '../widgets/skeleton_loader.dart';
 import '../../core/theme/app_theme.dart';
 import '../../company/controllers/company_form_controller.dart';
+import '../../branch/controllers/branch_form_controller.dart';
+import '../../warehouse/controllers/warehouse_form_controller.dart';
 import '../../core/widgets/custom_snackbar.dart';
 
-class CategoryListPage extends StatelessWidget {
+class CategoryListPage extends StatefulWidget {
   const CategoryListPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final CategoryListController controller =
-        Get.find<CategoryListController>();
-    final TextEditingController searchController = TextEditingController();
+  State<CategoryListPage> createState() => _CategoryListPageState();
+}
 
+class _CategoryListPageState extends State<CategoryListPage> {
+  late final CategoryListController controller;
+  late final TextEditingController searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<CategoryListController>();
+    searchController = TextEditingController();
+    // Auto refresh when entering the page
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.refreshItems();
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.surfaceVariant,
       body: RefreshIndicator(
@@ -307,40 +330,61 @@ class CategoryListPage extends StatelessWidget {
 
   Widget _buildFloatingActionButton(CategoryListController controller) {
     return Obx(() {
-      // Only show FAB when not loading and for company level
-      if (controller.isLoading.value || controller.currentLevel != ListLevel.company) {
+      // Only show FAB when not loading
+      if (controller.isLoading.value) {
         return const SizedBox.shrink();
       }
 
+      // Determine which form to open based on current level
+      String route;
+      switch (controller.currentLevel) {
+        case ListLevel.company:
+          if (Get.isRegistered<CompanyFormController>()) {
+            Get.delete<CompanyFormController>();
+          }
+          route = '/company-form';
+          break;
+        case ListLevel.branch:
+          if (Get.isRegistered<BranchFormController>()) {
+            Get.delete<BranchFormController>();
+          }
+          route = '/branch-form';
+          break;
+        case ListLevel.warehouse:
+          if (Get.isRegistered<WarehouseFormController>()) {
+            Get.delete<WarehouseFormController>();
+          }
+          route = '/warehouse-form';
+          break;
+        default:
+          return const SizedBox.shrink();
+      }
+
       return FloatingActionButton.extended(
-        onPressed: () => _handleCreateNew(controller),
+        onPressed: () => _handleCreateNew(controller, route),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         elevation: 8,
         icon: const Icon(Icons.add, size: 24),
         label: Text(
           'New ${controller.currentLevel.displayName}',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       );
     });
   }
 
-  Future<void> _handleCreateNew(CategoryListController controller) async {
-    // Clean up any existing form controller
-    if (Get.isRegistered<CompanyFormController>()) {
-      Get.delete<CompanyFormController>();
-    }
-    
-    final result = await Get.toNamed('/company-form');
-    
-    // If company was created successfully, show feedback and refresh the list
+  Future<void> _handleCreateNew(
+    CategoryListController controller,
+    String route,
+  ) async {
+    final result = await Get.toNamed(route);
+
+    // If item was created successfully, show feedback and refresh the list
     if (result == true) {
       CustomSnackbar.success(
-        message: 'New ${controller.currentLevel.displayName.toLowerCase()} has been added successfully',
+        message:
+            'New ${controller.currentLevel.displayName.toLowerCase()} has been added successfully',
       );
       await controller.refreshItems();
     }

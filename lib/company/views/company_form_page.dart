@@ -5,6 +5,7 @@ import '../models/company_detail_model.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/location_form_widget.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/form_theme.dart';
 
 class CompanyFormPage extends StatelessWidget {
   const CompanyFormPage({super.key});
@@ -18,7 +19,7 @@ class CompanyFormPage extends StatelessWidget {
       formFields: [
         // Basic Information Section
         _buildSectionHeader('Basic Information'),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: 10),
 
         CustomFormField(
           label: 'Company Name',
@@ -86,21 +87,26 @@ class CompanyFormPage extends StatelessWidget {
           label: 'Category',
           isRequired: true,
           child: Obx(
-            () => DropdownButtonFormField<String>(
+            () => FormTheme.buildStyledDropdown<String>(
               value:
                   controller.selectedCategoryId.value.isEmpty
                       ? null
                       : controller.selectedCategoryId.value,
-              decoration: buildInputDecoration(
-                hintText: 'Select category',
-                prefixIcon: Icons.category,
-              ),
+              hintText: 'Select category',
+              prefixIcon: Icons.category,
               items:
                   controller.categories
                       .map(
                         (category) => DropdownMenuItem<String>(
                           value: category['id'].toString(),
-                          child: Text(category['name'].toString()),
+                          child: Text(
+                            category['name'].toString(),
+                            style: TextStyle(
+                              color: AppTheme.neutral800,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                       )
                       .toList(),

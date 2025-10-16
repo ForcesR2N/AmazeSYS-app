@@ -34,22 +34,16 @@ class CompanyService {
 
       if (response.statusCode == ApiConstants.statusOk &&
           response.data != null) {
-        // 🔍 DEBUG PRINT - List Response
-        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        print('📡 Companies List Response');
-        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        print('Status: ${response.statusCode}');
-        print('Response Type: ${response.data.runtimeType}');
 
         final List<dynamic> companiesJson = response.data as List<dynamic>;
-        print('📊 Total Companies: ${companiesJson.length}');
+        print('Total Companies: ${companiesJson.length}');
 
         if (companiesJson.isNotEmpty) {
-          print('\n🔍 First Company Sample:');
+          print('First Company Sample:');
           final firstCompany = companiesJson.first as Map<String, dynamic>;
-          print('  ID: ${firstCompany['id']}');
-          print('  Name: ${firstCompany['name']}');
-          print('  Code ID: ${firstCompany['code_id']}');
+          print('ID: ${firstCompany['id']}');
+          print('Name: ${firstCompany['name']}');
+          print('Code ID: ${firstCompany['code_id']}');
           print(
             '  Province: ${firstCompany['province_name']} (${firstCompany['province_id']})',
           );
@@ -57,8 +51,6 @@ class CompanyService {
             '  District: ${firstCompany['district_name']} (${firstCompany['district_id']})',
           );
         }
-        print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
         return companiesJson
             .map((json) => CompanyDetail.fromJson(json as Map<String, dynamic>))
             .toList();
@@ -66,7 +58,7 @@ class CompanyService {
         return [];
       }
     } catch (e) {
-      print('❌ Error fetching companies: $e');
+      print('Error fetching companies: $e');
       return [];
     }
   }

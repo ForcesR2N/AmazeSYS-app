@@ -13,16 +13,29 @@ import '../../branch/widgets/branch_detail_widget.dart';
 import '../../warehouse/widgets/warehouse_detail_widget.dart';
 import '../widgets/breadcrumb_widget.dart';
 
-class ListPage extends StatelessWidget {
+class ListPage extends StatefulWidget {
   const ListPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final ListController controller = Get.find<ListController>();
-    final TextEditingController searchController = TextEditingController();
+  State<ListPage> createState() => _ListPageState();
+}
 
-    // Initialize page on first build
+class _ListPageState extends State<ListPage> {
+  late final ListController controller;
+  late final TextEditingController searchController;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<ListController>();
+    searchController = TextEditingController();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+
+    // Initialize page and set up auto-refresh
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
       final args = ListArguments.fromMap(Get.arguments as Map<String, dynamic>);
       if (args.parentItem != null) {
         controller.loadItemWithChildren(args.parentItem!);
@@ -30,38 +43,59 @@ class ListPage extends StatelessWidget {
         controller.loadRootItems(args.level);
       }
     });
+  }
 
-    return WillPopScope(
-      onWillPop: () async {
-        await controller.navigateBack();
-        return false; // Prevent default back behavior
-      },
-      child: Scaffold(
-        backgroundColor: AppTheme.surfaceVariant,
-        body: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            _buildAppBar(controller),
-            _buildHeaderSection(controller, searchController),
-            _buildContentSection(controller),
-          ],
+  void _onFocusChange() {
+    if (_focusNode.hasFocus) {
+      controller.refresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      focusNode: _focusNode,
+      child: WillPopScope(
+        onWillPop: () async {
+          await controller.navigateBack();
+          return false;
+        },
+        child: Scaffold(
+          backgroundColor: AppTheme.surfaceVariant,
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildAppBar(controller),
+              _buildHeaderSection(controller, searchController),
+              _buildContentSection(controller),
+            ],
+          ),
+          floatingActionButton: Obx(() {
+            // Only show refresh button when there's data and not currently loading
+            if (controller.displayItems.isNotEmpty &&
+                !controller.isLoading.value &&
+                !controller.isLoadingDetail.value) {
+              return FloatingActionButton(
+                onPressed: () => controller.refresh(),
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                child: const Icon(Icons.refresh),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
         ),
-        floatingActionButton: Obx(() {
-          // Only show refresh button when there's data and not currently loading
-          if (controller.displayItems.isNotEmpty &&
-              !controller.isLoading.value &&
-              !controller.isLoadingDetail.value) {
-            return FloatingActionButton(
-              onPressed: () => controller.refresh(),
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              child: const Icon(Icons.refresh),
-            );
-          }
-          return const SizedBox.shrink();
-        }),
       ),
     );
+  }
   }
 
   Widget _buildAppBar(ListController controller) {
@@ -888,4 +922,3 @@ class ListPage extends StatelessWidget {
         return const Color(0xFF8B5CF6);
     }
   }
-}

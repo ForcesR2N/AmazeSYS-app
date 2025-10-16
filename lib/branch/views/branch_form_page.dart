@@ -4,6 +4,8 @@ import '../controllers/branch_form_controller.dart';
 import '../../core/widgets/base_form_page.dart';
 import '../../core/widgets/location_form_widget.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/form_theme.dart';
+import '../../core/theme/form_theme.dart';
 
 class BranchFormPage extends StatelessWidget {
   const BranchFormPage({super.key});
@@ -75,22 +77,29 @@ class BranchFormPage extends StatelessWidget {
           label: 'Company',
           isRequired: true,
           child: Obx(
-            () => DropdownButtonFormField<String>(
-              value: controller.selectedCompanyId.value.isEmpty
-                  ? null
-                  : controller.selectedCompanyId.value,
-              decoration: buildInputDecoration(
-                hintText: 'Select company',
-                prefixIcon: Icons.apartment,
-              ),
-              items: controller.companies
-                  .map(
-                    (company) => DropdownMenuItem<String>(
-                      value: company['id'].toString(),
-                      child: Text(company['name'].toString()),
-                    ),
-                  )
-                  .toList(),
+            () => FormTheme.buildStyledDropdown<String>(
+              value:
+                  controller.selectedCompanyId.value.isEmpty
+                      ? null
+                      : controller.selectedCompanyId.value,
+              hintText: 'Select company',
+              prefixIcon: Icons.apartment,
+              items:
+                  controller.companies
+                      .map(
+                        (company) => DropdownMenuItem<String>(
+                          value: company['id'].toString(),
+                          child: Text(
+                            company['name'].toString(),
+                            style: TextStyle(
+                              color: AppTheme.neutral800,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
               onChanged: (value) {
                 if (value != null) {
                   controller.selectedCompanyId.value = value;

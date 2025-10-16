@@ -243,50 +243,13 @@ class ConfirmationDialogs {
             ),
             const SizedBox(height: 12),
             const Text(
-              'Please complete the following required fields before submitting:',
+              'Please fill in all required fields',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
                 color: Color(0xFF6B7280), // Gray-500
                 height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF2F2), // Red-50
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: const Color(0xFFFECACA), // Red-200
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: missingFields.map((field) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.circle,
-                        size: 6,
-                        color: Color(0xFFDC2626), // Red-600
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        field,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFFDC2626), // Red-600
-                        ),
-                      ),
-                    ],
-                  ),
-                )).toList(),
               ),
             ),
             const SizedBox(height: 24),

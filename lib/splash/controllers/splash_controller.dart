@@ -21,7 +21,7 @@ class SplashController extends GetxController {
   String get statusMessage => _statusMessage.value;
   bool get hasError => _hasError.value;
 
-  static const int minSplashDuration = 2000; // Minimum 2 seconds
+  static const int minSplashDuration = 2000; // 2 seconds
   static const int maxRetryAttempts = 2;
 
   @override
@@ -50,7 +50,7 @@ class SplashController extends GetxController {
         return;
       }
 
-      // Step 2: Tokens exist, validate by fetching user info
+      // Step 2: Tokens exist, validate by fetching user info to check token validity(nuuh expired)
       _statusMessage.value = 'Verifying session...';
       final user = await _authService.getCurrentUser();
 
