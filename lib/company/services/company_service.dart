@@ -5,7 +5,7 @@ import '../models/company_detail_model.dart';
 class CompanyService {
   final ApiClient _apiClient = ApiClient.instance;
 
-  /// Get company detail by ID
+  /// Get company detail by ID (READ)
   Future<CompanyDetail?> getCompanyDetail(String companyId) async {
     try {
       final response = await _apiClient.get('/api/companies/$companyId');
@@ -21,7 +21,7 @@ class CompanyService {
     }
   }
 
-  /// Get all companies with pagination
+  /// Get all companies with pagination (READ)
   Future<List<CompanyDetail>> getCompanies({
     int skip = 0,
     int limit = 100,
@@ -62,8 +62,8 @@ class CompanyService {
       return [];
     }
   }
-
-  /// Get company categories
+ 
+  /// Get company categories (READ)
   Future<List<Map<String, dynamic>>> getCompanyCategories({
     int skip = 0,
     int limit = 100,
@@ -86,7 +86,7 @@ class CompanyService {
     }
   }
 
-  /// Create a new company
+  /// Create a new company (CREATE)
   Future<CompanyDetail> createCompany(Map<String, dynamic> companyData) async {
     try {
       final response = await _apiClient.post(
@@ -106,7 +106,7 @@ class CompanyService {
     }
   }
 
-  /// Update an existing company
+  /// Update an existing company (UPDATE)
   Future<CompanyDetail> updateCompany(
     String companyId,
     Map<String, dynamic> companyData,
@@ -129,7 +129,7 @@ class CompanyService {
     }
   }
 
-  /// Delete a company
+  /// Delete a company (DELETE)
   Future<bool> deleteCompany(String companyId) async {
     try {
       final response = await _apiClient.delete('/api/companies/$companyId');

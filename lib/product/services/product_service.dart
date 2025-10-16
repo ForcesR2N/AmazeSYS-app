@@ -22,7 +22,7 @@ class ProductService {
     }
   }
 
-  /// Get all products with pagination
+  /// Get all products with pagination 
   Future<List<ProductDetail>> getProducts({int skip = 0, int limit = 100}) async {
     try {
       final response = await _apiClient.get(
